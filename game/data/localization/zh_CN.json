@@ -1,0 +1,12 @@
+{
+  "app.title": "AIRPG",
+  "shell.title": "工程骨架已就绪",
+  "shell.description": "配置与内容检查已通过。当前尚未导入正式故事，AI 接口处于未配置状态。",
+  "shell.open": "查看场景容器",
+  "workspace.title": "场景容器",
+  "workspace.description": "这里是后续探索场景的接入位置。场景通过应用接口读取状态，输入绑定已加载。",
+  "workspace.back": "返回",
+  "debug.toggle": "调试信息（F3）",
+  "debug.summary": "内容包：{pack}\n内容版本：{version}\n状态版本：{revision}\nAI：未配置\n存档：尚未接入",
+  "boot.failed": "工程启动检查失败。请查看开发日志中的错误代码。"
+}

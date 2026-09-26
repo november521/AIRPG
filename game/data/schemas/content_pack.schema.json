@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIRPG content catalog envelope v1 (not a complete story format)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "pack_id", "content_version", "locale", "flags", "localization", "definitions"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "pack_id": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+    "content_version": {"type": "string", "minLength": 1},
+    "locale": {"type": "string", "enum": ["zh_CN"]},
+    "flags": {"type": "object", "additionalProperties": {"type": "boolean"}},
+    "localization": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+    "definitions": {
+      "type": "array", "maxItems": 10000,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "kind", "text_key", "references", "conditions"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+          "kind": {"type": "string", "enum": ["character", "scene", "story_node", "clue", "dialogue_topic", "rule", "fact"]},
+          "text_key": {"type": "string", "minLength": 1},
+          "references": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["flag", "equals"],
+              "properties": {"flag": {"type": "string", "minLength": 1}, "equals": {"type": "boolean"}}
+            }
+          }
+        }
+      }
+    }
+  }
+}

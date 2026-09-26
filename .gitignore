@@ -1,0 +1,15 @@
+.tools/
+
+# Godot generated caches; .gd.uid files ARE source-controlled.
+**/.godot/
+build/
+artifacts/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.pem
+*.key
+export_credentials.cfg
+**/export_credentials.cfg
