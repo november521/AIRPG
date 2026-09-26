@@ -1,5 +1,17 @@
 # 接续记录
 
+## F1 对话安全边界（2026-09-26）
+
+分支 `feature/f1-dialogue-boundary`，worktree 在仓外独立目录，基线 `integration/slice-wiring@34ff473`。只新增 `game/domain/dialogue/`、`game/application/dialogue/`、`game/tests/f1/`，未改 Composition、公共契约/端口、G1 适配器、I1 视图、StateStore、Schema、本地化和测试聚合入口。
+
+F1 现在是 G1 与 I1 之间的应用边界：按 NPC/场景/话题/透露条件投影权威事实，把玩家原话、笔记和传闻放进显式 `untrusted` 字段后交给 `ModelProvider`；模型完成回复必须通过结构、说话者、事实和动作目录校验，才转换成 `DialogueViewContract.verified_reply`。取消、过期版本、重复完成、错误 request/speaker 的结果一律不显示；失败不写状态、不消耗物品、不提交骰点、不连接 `raw_delta`。
+
+验证：`AIRPG_F1_TESTS`（`tests/f1/run_f1_tests.gd`）164 项 0 失败；架构检查 103 个源文件通过；`./scripts/verify.ps1` 既有 663 项聚合 0 失败且真实主场景启动通过。F1 套件尚未登记进 `tests/run_tests.gd`（禁止功能分支修改），需集成负责人登记。
+
+未实现：真实 DeepSeek 调用、正式《死光》事实与台词、G1 `completed.content` 到回复 DTO 的解析接线、Composition 装配、I1 生产接线、剧情状态结算/笔记写入、长期记忆摘要。事实文本目前只带 `text_key`，未接本地化解析。
+
+下一步接线：集成负责人登记 F1 套件；Composition 用显式配置构造 `DialogueUseCase`（session、StateStore 只读快照、provider、上下文源、事实目录、动作目录、speaker 档案），I1 用 `configure(use_case)` 连接；G1 侧需在 `completed` 后用 F1 回复 DTO 解析/校验 `content`，prompt/messages 组装与事实文本解析仍需单独评审。
+
 ## 庄园模型换成 V4 修复版（2026-10-03）
 
 用户给出 `output/manor_v4`，要求用这个模型替换原有模型。工作包 A-MANOR（模型线）/
