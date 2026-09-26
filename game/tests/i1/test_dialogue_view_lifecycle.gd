@@ -4,6 +4,7 @@ extends RefCounted
 const Contract = preload("res://application/contracts/dialogue_view_contract.gd")
 const Transport = preload("res://application/contracts/model_transport_contract.gd")
 const Chrome = preload("res://presentation/dialogue/dialogue_chrome.gd")
+const HistoryPanel = preload("res://presentation/dialogue/dialogue_history_panel.gd")
 const VIEW = preload("res://presentation/dialogue/dialogue_view.tscn")
 const DialogueView = preload("res://presentation/dialogue/dialogue_view.gd")
 const FakeDialogue = preload("res://tests/doubles/fake_dialogue_use_case.gd")
@@ -21,6 +22,7 @@ func run(check: Callable, host: Node) -> void:
 	await _released_view_ignores_events(check, host)
 	await _freed_view_ignores_late_events(check, host)
 	await _reconfigure_switches_source(check, host)
+	await _reconfigure_stops_playback(check, host)
 	await _release_then_configure_resumes(check, host)
 	_production_sources_stay_isolated(check)
 
@@ -51,6 +53,9 @@ func _button(view: Node, node_name: String) -> Button:
 
 func _line_edit(view: Node, node_name: String) -> LineEdit:
 	return view.find_child(node_name, true, false) as LineEdit
+
+func _history(view: Node) -> HistoryPanel:
+	return view.find_child("HistoryPanel", true, false) as HistoryPanel
 
 func _released_view_ignores_events(check: Callable, host: Node) -> void:
 	var ctx := await _make(host)
@@ -92,15 +97,42 @@ func _reconfigure_switches_source(check: Callable, host: Node) -> void:
 	_line_edit(view, "InputEdit").text = "第一会话"
 	_button(view, "SubmitButton").pressed.emit()
 	var stale := view.get_active_request_id()
+	check.call(view.register_push("scene.old_push"), "old session push registered")
 	var second := FakeDialogue.new()
 	check.call(view.configure(second), "second use case configures")
 	first.publish(_reply(stale, "旧源回复"))
 	check.call(view.get_state() == Chrome.State.IDLE, "old source events are disconnected")
 	check.call(view.get_reply_text() == "", "old source cannot change the view")
+	second.publish(_reply("scene.old_push", "旧推送回复"))
+	check.call(view.get_reply_text() == "", "reconfigure clears registered pushes")
 	_line_edit(view, "InputEdit").text = "第二会话"
 	_button(view, "SubmitButton").pressed.emit()
 	check.call(second.submissions.size() == 1, "new source receives submissions")
 	check.call(first.submissions.size() == 1, "old source receives nothing further")
+	await _free(ctx)
+
+func _reconfigure_stops_playback(check: Callable, host: Node) -> void:
+	var ctx := await _make(host)
+	var view: DialogueView = ctx.view
+	var first: FakeDialogue = ctx.fake
+	check.call(view.register_push("scene.long"), "long opening registered as push")
+	first.publish(_reply("scene.long", "未完成的旧开场"))
+	check.call(view.is_playback_active(), "playback active before reconfigure")
+	var presented: Array[int] = []
+	view.reply_presented.connect(func(_id: String) -> void: presented.append(1))
+	var second := FakeDialogue.new()
+	check.call(view.configure(second), "reconfigure accepts a new use case")
+	check.call(not view.is_playback_active(), "reconfigure stops old playback")
+	check.call(view.get_reply_text() == "", "reconfigure clears displayed reply")
+	check.call(_history(view).entry_count() == 0, "reconfigure clears old history")
+	check.call(view.get_state() == Chrome.State.IDLE, "reconfigure resets to idle")
+	_line_edit(view, "InputEdit").text = "新会话"
+	_button(view, "SubmitButton").pressed.emit()
+	check.call(view.get_state() == Chrome.State.WAITING, "new session request waits")
+	view._on_playback_finished()
+	check.call(view.get_state() == Chrome.State.WAITING, "stale playback callback cannot reset new session")
+	check.call(presented.is_empty(), "stale playback callback presents nothing")
+	check.call(second.submissions.size() == 1, "new session submission intact")
 	await _free(ctx)
 
 func _release_then_configure_resumes(check: Callable, host: Node) -> void:

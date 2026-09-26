@@ -43,6 +43,13 @@ func stop() -> void:
 		_timer.stop()
 	_active = false
 
+func clear() -> void:
+	stop()
+	_text = ""
+	_visible = 0
+	if _label != null:
+		_label.text = ""
+
 func is_active() -> bool:
 	return _active
 
