@@ -16,12 +16,13 @@ var _headers: PackedStringArray = PackedStringArray()
 var _body: PackedByteArray = PackedByteArray()
 var _state: int = State.IDLE
 var _status_code: int = 0
+var _status_emitted: bool = false
 
 func _init(host: Node = null) -> void:
 	_host = host
 
 func start(url: String, headers: Dictionary, body: PackedByteArray) -> RefCounted:
-	if _state != State.IDLE:
+	if _state != State.IDLE or _host == null or not is_instance_valid(_host):
 		return Result.failure(Contract.MODEL_TRANSPORT_ERROR)
 	var parts := Config.endpoint_parts(url)
 	if parts.is_empty():
@@ -67,7 +68,10 @@ func _process(_delta: float) -> void:
 					return
 				_state = State.REQUESTING
 		HTTPClient.STATUS_BODY:
-			_status_code = _client.get_response_code()
+			if not _status_emitted:
+				_status_emitted = true
+				_status_code = _client.get_response_code()
+				response_started.emit(_status_code)
 			_state = State.READING
 			_read_body()
 		HTTPClient.STATUS_CANT_CONNECT, HTTPClient.STATUS_CANT_RESOLVE, \

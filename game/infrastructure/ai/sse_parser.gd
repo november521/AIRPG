@@ -2,6 +2,8 @@ extends RefCounted
 ## Incremental SSE parser. Pure buffer logic: no network, no logging, no vendor knowledge.
 ## Only complete lines are decoded, so multi-byte UTF-8 sequences split across transport
 ## chunks reassemble before decoding and are never replaced with U+FFFD.
+## Each line is validated strictly: invalid UTF-8, NUL bytes, oversized lines/events fail
+## the parser instead of silently continuing with replacement characters.
 ## Standard SSE behavior: CRLF/LF lines, comment/heartbeat lines (":" prefix), empty events,
 ## multi-line data joined with "\n", explicit event names, last-event-id, unknown fields ignored.
 
@@ -35,8 +37,12 @@ func feed_bytes(bytes: PackedByteArray) -> Array:
 		if newline_index - _scan_from > MAX_LINE_BYTES:
 			_failed = true
 			break
-		var line := _buffer.slice(_scan_from, newline_index).get_string_from_utf8()
+		var raw := _buffer.slice(_scan_from, newline_index)
 		_scan_from = newline_index + 1
+		if raw.find(0) >= 0 or not _is_valid_utf8(raw):
+			_failed = true
+			break
+		var line := raw.get_string_from_utf8()
 		if line.ends_with(CARRIAGE_RETURN):
 			line = line.substr(0, line.length() - 1)
 		var event := _consume_line(line)
@@ -78,11 +84,50 @@ func _consume_line(line: String) -> Dictionary:
 		"event":
 			_event_name = value
 		"id":
-			if not value.contains("\u0000"):
-				_last_id = value
+			_last_id = value
 		_:
 			pass
 	return {}
+
+## Strict byte-level UTF-8 validation (no engine decode, so invalid input never produces
+## replacement characters or engine warnings). Rejects overlong forms, surrogates and >U+10FFFF.
+static func _is_valid_utf8(bytes: PackedByteArray) -> bool:
+	var index := 0
+	while index < bytes.size():
+		var first := bytes[index]
+		if first < 0x80:
+			index += 1
+			continue
+		var length := 0
+		var code := 0
+		if (first & 0xE0) == 0xC0:
+			length = 2
+			code = first & 0x1F
+		elif (first & 0xF0) == 0xE0:
+			length = 3
+			code = first & 0x0F
+		elif (first & 0xF8) == 0xF0:
+			length = 4
+			code = first & 0x07
+		else:
+			return false
+		if index + length > bytes.size():
+			return false
+		for offset: int in range(1, length):
+			var continuation: int = bytes[index + offset]
+			if (continuation & 0xC0) != 0x80:
+				return false
+			code = (code << 6) | (continuation & 0x3F)
+		if code > 0x10FFFF or (code >= 0xD800 and code <= 0xDFFF):
+			return false
+		if length == 2 and code < 0x80:
+			return false
+		if length == 3 and code < 0x800:
+			return false
+		if length == 4 and code < 0x10000:
+			return false
+		index += length
+	return true
 
 func _dispatch() -> Dictionary:
 	if _data_lines.is_empty():

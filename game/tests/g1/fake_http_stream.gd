@@ -21,6 +21,9 @@ func start(request_url: String, request_headers: Dictionary, request_body: Packe
 func cancel() -> void:
 	cancelled = true
 
+func emit_started(status_code: int) -> void:
+	response_started.emit(status_code)
+
 func emit_chunk(bytes: PackedByteArray) -> void:
 	body_chunk.emit(bytes)
 

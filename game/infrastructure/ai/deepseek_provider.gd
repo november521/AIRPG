@@ -11,7 +11,10 @@ extends "res://application/ports/model_provider.gd"
 ##   var provider := DeepSeekProvider.new(config, credentials, stream_factory, clock)
 ##   stream_factory: Callable returning a fresh stream (GodotHttpStream.new(host) in production,
 ##                   a fake extending http_stream_port.gd in tests)
-##   clock: ClockPort for overall/idle timeouts (SceneTreeClock.new(tree) in production)
+##   clock: required ClockPort for overall/idle timeouts; a missing clock fails closed because
+##          it could otherwise accept a request that never receives a terminal signal
+##   Completion requires both a 2xx response_started and the [DONE] sentinel. A body containing
+##   [DONE] on a non-2xx response, or before the status is confirmed, always fails.
 
 const Contract = preload("res://application/contracts/model_transport_contract.gd")
 const Config = preload("res://infrastructure/ai/deepseek_config.gd")
@@ -19,6 +22,7 @@ const Credentials = preload("res://infrastructure/ai/deepseek_credentials.gd")
 const ClockPort = preload("res://infrastructure/ai/clock_port.gd")
 const SseParser = preload("res://infrastructure/ai/sse_parser.gd")
 const Usage = preload("res://infrastructure/ai/deepseek_usage.gd")
+const TerminatedLog = preload("res://infrastructure/ai/terminated_request_log.gd")
 
 const DONE_MARKER: String = "[DONE]"
 const TRANSPORT_SCHEMA_VERSION: int = 1
@@ -33,9 +37,10 @@ var _stream_factory: Callable
 var _clock: ClockPort
 var _requests: Dictionary = {}
 var _active_count: int = 0
+var _terminated: TerminatedLog = TerminatedLog.new()
 
 func _init(config: Config, credentials: Credentials, stream_factory: Callable,
-		clock: ClockPort = null) -> void:
+		clock: ClockPort) -> void:
 	_config = config
 	_credentials = credentials
 	_stream_factory = stream_factory
@@ -46,9 +51,12 @@ func _to_string() -> String:
 
 func start(request_id: String, filtered_context: Dictionary) -> RefCounted:
 	var request := Contract.request(request_id, filtered_context)
-	if not request.ok or _requests.has(request_id):
+	if not request.ok or _requests.has(request_id) or _terminated.has(request_id):
 		return Result.failure(SYNC_REQUEST_INVALID)
 	if _config == null or _credentials == null or not _credentials.configured():
+		return Result.failure(Contract.AI_NOT_CONFIGURED)
+	if _clock == null:
+		# Without a clock the adapter cannot guarantee a terminal signal; fail before accepting.
 		return Result.failure(Contract.AI_NOT_CONFIGURED)
 	if _active_count >= _config.max_concurrent_requests:
 		return Result.failure(SYNC_REQUEST_INVALID)
@@ -58,7 +66,8 @@ func start(request_id: String, filtered_context: Dictionary) -> RefCounted:
 	if not body.ok:
 		return body
 	var stream: Variant = _stream_factory.call()
-	if stream == null or not stream.has_signal("body_chunk") \
+	if stream == null or not stream.has_signal("response_started") \
+			or not stream.has_signal("body_chunk") \
 			or not stream.has_signal("response_finished") or not stream.has_signal("transport_failed"):
 		return Result.failure(Contract.MODEL_TRANSPORT_ERROR)
 	var state := {
@@ -67,11 +76,13 @@ func start(request_id: String, filtered_context: Dictionary) -> RefCounted:
 		"text": "",
 		"usage": {},
 		"finish_reason": "",
+		"status_code": 0,
 		"terminated": false,
 		"received_bytes": 0,
 		"request_token": null,
 		"idle_token": null,
 	}
+	stream.connect("response_started", _on_response_started.bind(request_id))
 	stream.connect("body_chunk", _on_body_chunk.bind(request_id))
 	stream.connect("response_finished", _on_response_finished.bind(request_id))
 	stream.connect("transport_failed", _on_transport_failed.bind(request_id))
@@ -112,6 +123,14 @@ func _build_body(filtered_context: Dictionary) -> RefCounted:
 		return Result.failure(SYNC_REQUEST_INVALID)
 	return Result.success(bytes)
 
+func _on_response_started(status_code: int, request_id: String) -> void:
+	var state: Variant = _active(request_id)
+	if state == null:
+		return
+	state.status_code = status_code
+	if status_code < 200 or status_code > 299:
+		_fail_request(request_id, Contract.MODEL_TRANSPORT_ERROR)
+
 func _on_body_chunk(bytes: PackedByteArray, request_id: String) -> void:
 	var state: Variant = _active(request_id)
 	if state == null or bytes.is_empty():
@@ -132,7 +151,10 @@ func _on_body_chunk(bytes: PackedByteArray, request_id: String) -> void:
 func _handle_event(request_id: String, state: Dictionary, event: Dictionary) -> void:
 	var data: String = String(event.get("data", ""))
 	if data == DONE_MARKER:
-		_complete_request(request_id, state)
+		if state.status_code >= 200 and state.status_code <= 299:
+			_complete_request(request_id, state)
+		else:
+			_fail_request(request_id, Contract.MODEL_TRANSPORT_ERROR)
 		return
 	if data.is_empty():
 		return
@@ -207,13 +229,14 @@ func _complete_request(request_id: String, state: Dictionary) -> void:
 	if state.terminated:
 		return
 	state.terminated = true
-	_release_request(request_id, state)
-	completed.emit(request_id, {
+	var response := {
 		"transport_schema_version": TRANSPORT_SCHEMA_VERSION,
 		"content": state.text,
 		"finish_reason": state.finish_reason,
 		"usage": state.usage.duplicate(true),
-	})
+	}
+	_release_request(request_id, state)
+	completed.emit(request_id, response)
 
 func _fail_request(request_id: String, code: String) -> void:
 	var state: Variant = _active(request_id)
@@ -224,13 +247,21 @@ func _fail_request(request_id: String, code: String) -> void:
 	var stable := code if Contract.is_stable_error(code) else Contract.MODEL_TRANSPORT_ERROR
 	failed.emit(request_id, stable)
 
-func _release_request(_request_id: String, state: Dictionary) -> void:
+func _release_request(request_id: String, state: Dictionary) -> void:
 	_disarm_timer(state, "request_token")
 	_disarm_timer(state, "idle_token")
 	var stream: Variant = state.stream
 	if stream != null and is_instance_valid(stream) and stream.has_method("cancel"):
 		stream.cancel()
+	# Drop references to response text, parser and stream so terminated requests do not
+	# accumulate memory; the request ID stays deduplicated through a bounded tombstone ring.
+	state.text = ""
+	state.usage = {}
+	state.parser = null
+	state.stream = null
 	_active_count = maxi(_active_count - 1, 0)
+	_requests.erase(request_id)
+	_terminated.remember(request_id)
 
 func _active(request_id: String) -> Variant:
 	var state: Variant = _requests.get(request_id)

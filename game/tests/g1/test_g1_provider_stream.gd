@@ -48,6 +48,7 @@ func _happy_path(check: Callable) -> void:
 	check.call(body.get("stream_options", {}).get("include_usage") == true,
 		"usage requested as structured stream option")
 	check.call(body.get("messages") is Array, "filtered context passed through as body")
+	stream.emit_started(200)
 	for chunk: Variant in Fixture.load_chunks(BASIC):
 		stream.emit_chunk(chunk)
 	check.call(harness.text() == EXPECTED_TEXT, "deltas concatenate to expected chinese text")
@@ -73,6 +74,7 @@ func _byte_by_byte(check: Callable) -> void:
 		harness.release()
 		return
 	var bytes := Fixture.load_bytes(BASIC)
+	stream.emit_started(200)
 	for index: int in bytes.size():
 		stream.emit_chunk(bytes.slice(index, index + 1))
 	check.call(harness.text() == EXPECTED_TEXT and harness.completed.size() == 1,
@@ -89,6 +91,7 @@ func _oversized_response(check: Callable) -> void:
 		harness.release()
 		return
 	var bytes := Fixture.load_bytes(BASIC)
+	stream.emit_started(200)
 	for index: int in bytes.size():
 		if harness.failed.is_empty():
 			stream.emit_chunk(bytes.slice(index, index + 1))
@@ -107,6 +110,7 @@ func _invalid_payload(check: Callable) -> void:
 		check.call(false, "stream created for invalid payload request")
 		harness.release()
 		return
+	stream.emit_started(200)
 	stream.emit_chunk_text("data: {oops\r\n\r\n")
 	check.call(harness.failure_codes() == [Contract.MODEL_RESPONSE_INVALID],
 		"malformed JSON maps to MODEL_RESPONSE_INVALID")
@@ -118,6 +122,7 @@ func _invalid_payload(check: Callable) -> void:
 	second.provider.start("req-shape", Harness.context())
 	var second_stream := second.stream()
 	if second_stream != null:
+		second_stream.emit_started(200)
 		second_stream.emit_chunk_text("data: {\"id\":\"only-id\"}\r\n\r\n")
 	check.call(second.failure_codes() == [Contract.MODEL_RESPONSE_INVALID],
 		"unrecognized chunk shape maps to MODEL_RESPONSE_INVALID")
@@ -126,17 +131,32 @@ func _invalid_payload(check: Callable) -> void:
 	third.provider.start("req-content-type", Harness.context())
 	var third_stream := third.stream()
 	if third_stream != null:
+		third_stream.emit_started(200)
 		third_stream.emit_chunk_text(
 			"data: {\"choices\":[{\"delta\":{\"content\":123}}]}\r\n\r\n")
 	check.call(third.failure_codes() == [Contract.MODEL_RESPONSE_INVALID],
 		"non-string delta content maps to MODEL_RESPONSE_INVALID")
 	third.release()
+	var binary := Harness.new()
+	binary.provider.start("req-binary", Harness.context())
+	var binary_stream := binary.stream()
+	if binary_stream != null:
+		binary_stream.emit_started(200)
+		var raw := "data: ok".to_utf8_buffer()
+		raw.append(0xFF)
+		raw.append(0x0A)
+		raw.append(0x0A)
+		binary_stream.emit_chunk(raw)
+	check.call(binary.failure_codes() == [Contract.MODEL_RESPONSE_INVALID],
+		"invalid utf-8 bytes map to MODEL_RESPONSE_INVALID")
+	binary.release()
 
 func _truncated_streams(check: Callable) -> void:
 	var truncated := Harness.new()
 	truncated.provider.start("req-truncated", Harness.context())
 	var stream := truncated.stream()
 	if stream != null:
+		stream.emit_started(200)
 		for chunk: Variant in Fixture.load_chunks(TRUNCATED):
 			stream.emit_chunk(chunk)
 		stream.emit_finished(200)
@@ -148,6 +168,7 @@ func _truncated_streams(check: Callable) -> void:
 	no_done.provider.start("req-no-done", Harness.context())
 	var no_done_stream := no_done.stream()
 	if no_done_stream != null:
+		no_done_stream.emit_started(200)
 		for chunk: Variant in Fixture.load_chunks(NO_DONE):
 			no_done_stream.emit_chunk(chunk)
 		no_done_stream.emit_finished(200)
@@ -158,6 +179,7 @@ func _truncated_streams(check: Callable) -> void:
 	disconnected.provider.start("req-disconnect", Harness.context())
 	var disconnected_stream := disconnected.stream()
 	if disconnected_stream != null:
+		disconnected_stream.emit_started(200)
 		disconnected_stream.emit_chunk(Fixture.load_bytes(BASIC).slice(0, 40))
 		disconnected_stream.emit_failed(Contract.MODEL_TRANSPORT_ERROR)
 		disconnected_stream.emit_finished(200)
@@ -171,6 +193,7 @@ func _vendor_error_and_heartbeat(check: Callable) -> void:
 	vendor.provider.start("req-vendor", Harness.context())
 	var stream := vendor.stream()
 	if stream != null:
+		stream.emit_started(200)
 		for chunk: Variant in Fixture.load_chunks(VENDOR_ERROR):
 			stream.emit_chunk(chunk)
 	check.call(vendor.failure_codes() == [Contract.MODEL_TRANSPORT_ERROR],
@@ -189,6 +212,7 @@ func _vendor_error_and_heartbeat(check: Callable) -> void:
 	heartbeat.provider.start("req-heartbeat", Harness.context())
 	var heartbeat_stream := heartbeat.stream()
 	if heartbeat_stream != null:
+		heartbeat_stream.emit_started(200)
 		for chunk: Variant in Fixture.load_chunks(HEARTBEAT):
 			heartbeat_stream.emit_chunk(chunk)
 		heartbeat_stream.emit_finished(200)
