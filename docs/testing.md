@@ -30,6 +30,12 @@ PowerShell 7：`./scripts/verify.ps1`，或 `-Godot <固定版本引擎>`。
 | 端口 | 基类与未配置模型明确失败、内存存档读写隔离 |
 | 启动 | 真实配置与空内容包装配成功、缺失配置失败、输入注册与非法绑定原子拒绝 |
 | 场景 | 主场景启动、来回切换只有一个活动视图、未知路由保留原场景 |
+| A1 探索契约 | 移动轴边界、目标 ID、候选距离和测试替身隔离 |
+| A1 对话契约 | 已验证回复、未知字段、失败状态、玩家原文保留和测试替身发布 |
+| A1 模型传输 | 请求上下文隔离、稳定错误码和取消幂等 |
+
+测试套件放入 `game/tests/suites` 或工作包专属子目录。功能分支不修改 `run_tests.gd`；由集成负责人在
+单点集成时登记新套件。`tests/doubles` 只能作为测试替身，不能接入生产 Composition。
 
 CI 使用 GitHub Actions 的普通 `pull_request` / `push main` 事件、只读 contents 权限和不持久保存凭据的 checkout。
 工作流依据 [GitHub Actions 官方语法](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax) 配置，并经 github-actions-docs 技能核对；与本地调用同一验证脚本。

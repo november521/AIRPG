@@ -19,10 +19,50 @@
 | `SaveRepository` | write_snapshot(slot, Dictionary) / read_snapshot(slot) | 本次只有接口与内存测试适配器，无生产保存功能 |
 | `RandomSource` | roll(sides)、capture()、restore(checkpoint) | 独立会话源；非法参数/检查点不推进 RNG |
 | `SceneRouter` | configure(host, routes)、navigate(id) → Result(Node) | 节点移除后延迟释放；无效路由保留旧视图 |
+| `ExplorationContract` | move(axis)、interact(target_id)、investigate()、candidate(...) | 只表达玩家意图和互动候选；不计算检定、不修改剧情状态 |
+| `DialogueViewContract` | status(...)、verified_reply(...)、player_text(...)、option_selection(...) | 玩家输入原样保留；只有 `verified_reply` 可作为模型台词进入 UI |
+| `ModelTransportContract` | request(id, filtered_context)、is_stable_error(code) | 上下文深拷贝；供应商错误不得越过稳定错误码边界 |
 
 Result 的公开属性是值协议，不是强不可变类型。领域状态和内容边界自行深拷贝；不能凭借 Result 自动获得隔离。
 当前基类端口返回 NOT_IMPLEMENTED；模型默认适配器返回 AI_NOT_CONFIGURED。不得忽略 ok 并继续当成功使用。
-请求字典的完整业务 DTO 在对话工作包冻结；端口接口稳定并不代表 AI 数据契约或知识隔离已经实现。
+请求字典的完整业务 DTO 仍在对话工作包冻结；A1 只确定传输信封、生命周期错误码和 UI 安全发布边界，
+不代表 AI 响应语义、知识隔离或状态提案已经实现。
+
+## A1 并行接缝
+
+### 探索命令 v1
+
+`application/contracts/exploration_contract.gd` 是 C1 的稳定入口。移动使用长度不超过 1 的 `Vector2` 轴，
+互动目标与提示键使用稳定 ID，探查命令不携带概率或结果。C1 可以消费这些命令，但不得据此直接修改
+`StateStore`。探查发现内容、骰点与剧情效果留给后续规则/故事用例。
+
+### 对话展示 v1
+
+`application/contracts/dialogue_view_contract.gd` 区分状态事件、已验证回复、玩家原文和选项选择。
+第一阶段发布顺序固定为“完整缓存 → 完整校验 → UI 渐进播放”。`ModelProvider.raw_delta` 仅供传输和诊断，
+不得包装成 `verified_reply` 或直接连接玩家 UI。推荐选项当前携带稳定 ID 与显示文本；正式内容接入后显示文本
+应由已验证的对话用例提供，固定界面文本仍从本地化资源读取。
+
+### 模型传输 v1
+
+`application/contracts/model_transport_contract.gd` 冻结供应商无关请求信封和以下稳定失败代码：
+
+- `AI_NOT_CONFIGURED`
+- `MODEL_TIMEOUT`
+- `MODEL_TRANSPORT_ERROR`
+- `MODEL_RESPONSE_INVALID`
+- `KNOWLEDGE_SCOPE_VIOLATION`
+- `REQUEST_CANCELLED`
+- `REQUEST_STALE`
+
+每个被接受的请求必须恰有一个终止信号；取消幂等；重试使用新的 request ID。G1 只负责传输，不能选择 NPC
+知识、认可事实、结算规则或提交状态。完整响应 DTO、允许事实与动作提案由 F1/B1 会审后另行版本化。
+
+### 测试替身
+
+`tests/doubles` 提供探索、对话和可编程模型替身。它们只服务于测试与并行开发，不是生产功能。
+可编程模型替身的 `force_*` 方法允许故意发出违规序列，用于取消、迟到、重复终止和原始流泄漏测试。
+功能分支在自己的测试目录新增套件；`tests/run_tests.gd` 只由集成负责人登记套件。
 
 ## JSON Schema 子集
 

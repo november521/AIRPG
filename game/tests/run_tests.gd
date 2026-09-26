@@ -1,5 +1,6 @@
 extends SceneTree
 const Foundation = preload("res://tests/test_foundation.gd")
+const A1Contracts = preload("res://tests/suites/test_a1_contracts.gd")
 const Router = preload("res://presentation/navigation/scene_router.gd")
 const HOME = preload("res://presentation/shell/home.tscn")
 const WORKSPACE = preload("res://presentation/shell/workspace.tscn")
@@ -18,7 +19,9 @@ func _check(condition: bool, description: String) -> void:
 		printerr("FAIL: " + description)
 
 func _run() -> void:
-	Foundation.new().run(_check)
+	# Feature branches add isolated suites. The integration owner registers suites here once.
+	for suite: Variant in [Foundation, A1Contracts]:
+		suite.new().run(_check)
 	var main := MAIN.instantiate()
 	root.add_child(main)
 	await process_frame
