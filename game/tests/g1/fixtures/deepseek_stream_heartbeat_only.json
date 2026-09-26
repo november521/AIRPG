@@ -1,0 +1,5 @@
+{
+  "description": "Synthetic offline SSE recording with only comments/heartbeats and blank lines. Used to prove heartbeats alone never complete a request.",
+  "chunk_size": 3,
+  "text": ": ping\r\n\r\n\r\n: ping\r\n\r\n"
+}
