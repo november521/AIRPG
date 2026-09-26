@@ -6,7 +6,9 @@
 
 F1 现在是 G1 与 I1 之间的应用边界：按 NPC/场景/话题/透露条件投影权威事实，把玩家原话、笔记和传闻放进显式 `untrusted` 字段后交给 `ModelProvider`；模型完成回复必须通过结构、说话者、事实和动作目录校验，才转换成 `DialogueViewContract.verified_reply`。取消、过期版本、重复完成、错误 request/speaker 的结果一律不显示；失败不写状态、不消耗物品、不提交骰点、不连接 `raw_delta`。
 
-验证：`AIRPG_F1_TESTS`（`tests/f1/run_f1_tests.gd`）164 项 0 失败；架构检查 103 个源文件通过；`./scripts/verify.ps1` 既有 663 项聚合 0 失败且真实主场景启动通过。F1 套件尚未登记进 `tests/run_tests.gd`（禁止功能分支修改），需集成负责人登记。
+验证：`AIRPG_F1_TESTS`（`tests/f1/run_f1_tests.gd`）174 项 0 失败；架构检查 104 个源文件通过；`./scripts/verify.ps1` 既有 663 项聚合 0 失败且真实主场景启动通过。F1 套件尚未登记进 `tests/run_tests.gd`（禁止功能分支修改），需集成负责人登记。
+
+对抗复核修复：AIRPG-F1-001（非权威事实绕过受众过滤）：`knowledge_facts.untrusted_for` 现已对玩家陈述/传闻应用与权威事实相同的 speaker/scene/topic/透露条件过滤，仅改变信任级别；AIRPG-F1-002（可伪造验证标记）：`ReplyValidator` 返回密封的 `ValidatedReply` 类型，`DialoguePublication.build` 只接受该类型，普通字典（含手写 `validated` 字段）与未密封实例一律拒绝。QA 的 4 项断言全部保留并通过。
 
 未实现：真实 DeepSeek 调用、正式《死光》事实与台词、G1 `completed.content` 到回复 DTO 的解析接线、Composition 装配、I1 生产接线、剧情状态结算/笔记写入、长期记忆摘要。事实文本目前只带 `text_key`，未接本地化解析。
 

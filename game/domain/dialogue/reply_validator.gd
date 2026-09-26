@@ -1,12 +1,11 @@
 extends RefCounted
 ## Semantic validation of a structurally valid model reply: speaker identity, facts the
-## NPC is authorized to use now, and actions from the pre-declared catalog. Only replies
-## that pass carry the validation marker consumed by the publication gate.
+## NPC is authorized to use now, and actions from the pre-declared catalog. A passing
+## reply is sealed inside a ValidatedReply capability; plain dictionaries never qualify.
 
 const Result = preload("res://shared/result.gd")
 const ModelReply = preload("res://domain/dialogue/model_reply.gd")
-
-const VALIDATION_MARKER: String = "validated"
+const ValidatedReply = preload("res://domain/dialogue/validated_reply.gd")
 
 static func validate(data: Variant, expected_speaker_id: String, allowed_fact_ids: Array,
 		known_fact_ids: Array, action_catalog) -> RefCounted:
@@ -26,8 +25,9 @@ static func validate(data: Variant, expected_speaker_id: String, allowed_fact_id
 		if not parameters.ok:
 			return Result.failure("REPLY_ACTION_INVALID", [parameters.code, action.command_id])
 		action.parameters = parameters.value
-	reply[VALIDATION_MARKER] = true
-	return Result.success(reply)
+	var sealed := ValidatedReply.new()
+	sealed._seal(reply)
+	return Result.success(sealed)
 
-static func is_validated(reply: Dictionary) -> bool:
-	return reply.get(VALIDATION_MARKER) == true
+static func is_validated(value: Variant) -> bool:
+	return value is ValidatedReply

@@ -136,6 +136,14 @@ func _failure_paths(check: Callable) -> void:
 		and all_failed[1].error_code == Transport.MODEL_RESPONSE_INVALID,
 		"malformed payload fails closed as MODEL_RESPONSE_INVALID")
 	check.call(h.state.snapshot() == before, "malformed payload never mutates state")
+	h.use_case.submit_text("test.request.3", "模拟断流")
+	h.provider.fail("test.request.3", Transport.MODEL_TRANSPORT_ERROR)
+	var transport_failures := Fixtures.statuses(h.events, ViewContract.STATUS_FAILED)
+	check.call(transport_failures.size() == 3 \
+		and transport_failures[2].error_code == Transport.MODEL_TRANSPORT_ERROR \
+		and transport_failures[2].retryable,
+		"transport interruption reports a retryable stable error")
+	check.call(h.state.snapshot() == before, "transport interruption never mutates state")
 	h.use_case.release()
 	var rejecting := Fixtures.build({"provider": RejectingProvider.new()})
 	check.call(rejecting.result.ok, "rejecting provider harness builds")

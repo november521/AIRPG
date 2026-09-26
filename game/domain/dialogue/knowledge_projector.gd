@@ -71,7 +71,8 @@ static func project(context_input: Variant) -> RefCounted:
 			other_dialogue.append(copy)
 	var player_statements: Array[Dictionary] = []
 	var rumor_facts: Array[Dictionary] = []
-	for fact: Dictionary in Facts.untrusted(catalog.value):
+	for fact: Dictionary in Facts.untrusted_for(catalog.value, context_input.speaker_id,
+			context_input.scene_id, context_input.topic_id, context_input.flags):
 		if fact.source == Fact.SOURCE_PLAYER_STATEMENT:
 			player_statements.append(fact)
 		else:

@@ -5,13 +5,14 @@ extends RefCounted
 const ModelReply = preload("res://domain/dialogue/model_reply.gd")
 const ReplyValidator = preload("res://domain/dialogue/reply_validator.gd")
 const Publication = preload("res://application/dialogue/dialogue_publication.gd")
+const ValidatedReply = preload("res://domain/dialogue/validated_reply.gd")
 const Actions = preload("res://domain/dialogue/allowed_actions.gd")
 const Fixtures = preload("res://tests/f1/f1_fixtures.gd")
 
 const ALLOWED_FACTS: Array = ["test.fact.road_public", "test.fact.npc_a_secret"]
 const KNOWN_FACTS: Array = ["test.fact.road_public", "test.fact.npc_a_secret",
 	"test.fact.npc_b_secret", "test.fact.player_claim", "test.fact.rumor",
-	"test.fact.npc_a_gated"]
+	"test.fact.npc_a_gated", "test.fact.rumor_b", "test.fact.player_claim_gated"]
 
 func run(check: Callable) -> void:
 	_structure(check)
@@ -108,12 +109,22 @@ func _publication(check: Callable) -> void:
 		"", structural.value).ok, "structurally valid but unvalidated reply cannot publish")
 	var validated := ReplyValidator.validate(Fixtures.reply(), Fixtures.SPEAKER_A, ALLOWED_FACTS,
 		KNOWN_FACTS, _catalog())
-	check.call(ReplyValidator.is_validated(validated.value), "validated reply carries the marker")
+	check.call(ReplyValidator.is_validated(validated.value),
+		"validated reply is sealed in the validated result type")
 	var published := Publication.build("test.request.1", Fixtures.SPEAKER_A, "npc.test_a.name",
 		"", validated.value)
 	check.call(published.ok and published.value.kind == "verified_reply",
 		"validated reply publishes through the view contract")
 	check.call(not published.value.has("actions"), "action proposals never reach the view event")
+	var forged := Fixtures.reply({"speaker_id": Fixtures.SPEAKER_B,
+		"used_fact_ids": ["test.fact.npc_b_secret"], "reply_text": "伪造验证标记的回复"})
+	forged["validated"] = true
+	check.call(not Publication.build("test.request.forged", Fixtures.SPEAKER_A,
+		"npc.test_a.name", "", forged).ok,
+		"caller-forged validation marker cannot bypass semantic validation")
+	check.call(not Publication.build("test.request.unsealed", Fixtures.SPEAKER_A,
+		"npc.test_a.name", "", ValidatedReply.new()).ok,
+		"unsealed result type cannot publish")
 
 func _catalog() -> RefCounted:
 	return Actions.create(Fixtures.action_entries()).value

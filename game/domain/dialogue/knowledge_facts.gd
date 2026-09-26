@@ -25,23 +25,20 @@ static func trusted(facts: Array, speaker_id: String, scene_id: String, topic_id
 		flags: Dictionary) -> Array[Dictionary]:
 	var available: Array[Dictionary] = []
 	for fact: Dictionary in facts:
-		if not Fact.is_authoritative(fact):
-			continue
-		if not Fact.allows_speaker(fact, speaker_id):
-			continue
-		if not Fact.allows_scene(fact, scene_id):
-			continue
-		if not Fact.allows_topic(fact, topic_id):
-			continue
-		if not Fact.disclosure_allowed(fact, flags):
+		if not Fact.is_authoritative(fact) or not _within_scope(fact, speaker_id, scene_id,
+				topic_id, flags):
 			continue
 		available.append(_view(fact))
 	return available
 
-static func untrusted(facts: Array) -> Array[Dictionary]:
+static func untrusted_for(facts: Array, speaker_id: String, scene_id: String, topic_id: String,
+		flags: Dictionary) -> Array[Dictionary]:
+	# Non-authoritative facts change trust level, never audience: a player claim or rumor
+	# scoped to NPC A must not reach NPC B even in the untrusted section.
 	var available: Array[Dictionary] = []
 	for fact: Dictionary in facts:
-		if Fact.is_authoritative(fact):
+		if Fact.is_authoritative(fact) or not _within_scope(fact, speaker_id, scene_id,
+				topic_id, flags):
 			continue
 		available.append(_view(fact))
 	return available
@@ -51,6 +48,11 @@ static func known_ids(facts: Array) -> Array[String]:
 	for fact: Dictionary in facts:
 		ids.append(fact.fact_id)
 	return ids
+
+static func _within_scope(fact: Dictionary, speaker_id: String, scene_id: String, topic_id: String,
+		flags: Dictionary) -> bool:
+	return Fact.allows_speaker(fact, speaker_id) and Fact.allows_scene(fact, scene_id) \
+		and Fact.allows_topic(fact, topic_id) and Fact.disclosure_allowed(fact, flags)
 
 static func _view(fact: Dictionary) -> Dictionary:
 	return {"fact_id": fact.fact_id, "text_key": fact.text_key, "source": fact.source}

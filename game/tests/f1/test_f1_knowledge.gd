@@ -88,6 +88,16 @@ func _isolation(check: Callable) -> void:
 		"NPC B private fact reaches NPC B")
 	check.call(not JSON.stringify(b_context.value).contains("test.fact.npc_a_secret"),
 		"NPC A private fact absent from NPC B context")
+	check.call(not _fact_ids(b_context.value.untrusted.player_statements).has(
+		"test.fact.player_claim"),
+		"NPC A-scoped player statement absent from NPC B untrusted context")
+	check.call(_fact_ids(projected.value.untrusted.player_statements).has(
+		"test.fact.player_claim"),
+		"authorized player statement still reaches NPC A untrusted context")
+	check.call(not JSON.stringify(projected.value).contains("test.fact.rumor_b"),
+		"NPC-B-scoped rumor absent from NPC A untrusted context")
+	check.call(_fact_ids(b_context.value.untrusted.rumor_facts).has("test.fact.rumor_b"),
+		"NPC-B-scoped rumor reaches NPC B untrusted context")
 	var expected_keys := ["schema_version", "speaker_id", "scene_id", "topic_id", "trusted_facts",
 		"perceptible", "recent_dialogue", "key_memories", "untrusted"]
 	var actual_keys: Array = projected.value.keys()
@@ -112,6 +122,13 @@ func _untrusted(check: Callable) -> void:
 		"player statement facts stay in untrusted field")
 	check.call(_fact_ids(untrusted.rumor_facts) == ["test.fact.rumor"],
 		"rumor facts stay in untrusted field")
+	check.call(not _fact_ids(untrusted.player_statements).has("test.fact.player_claim_gated"),
+		"gated player statement stays hidden while its condition is unmet")
+	var gated_claim := Projector.project(_input(Fixtures.SPEAKER_A, {"topic_id": Fixtures.GATED_TOPIC,
+		"flags": {Fixtures.FLAG_CONFIDED: true}}))
+	check.call(_fact_ids(gated_claim.value.untrusted.player_statements).has(
+		"test.fact.player_claim_gated"),
+		"gated player statement appears once condition, scene and topic match")
 	check.call(untrusted.other_dialogue[0].speaker_id == Fixtures.PLAYER_ID,
 		"non-speaker dialogue is untrusted")
 	check.call(projected.value.recent_dialogue[0].speaker_id == Fixtures.SPEAKER_A,

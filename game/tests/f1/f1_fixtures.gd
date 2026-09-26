@@ -31,6 +31,9 @@ static func facts() -> Array:
 		_fact("test.fact.rumor", [SPEAKER_A, SPEAKER_B], false, [], [], [], Fact.SOURCE_RUMOR),
 		_fact("test.fact.npc_a_gated", [SPEAKER_A], false, [], [GATED_TOPIC],
 			[{"flag": FLAG_CONFIDED, "equals": true}]),
+		_fact("test.fact.rumor_b", [SPEAKER_B], false, [], [], [], Fact.SOURCE_RUMOR),
+		_fact("test.fact.player_claim_gated", [SPEAKER_A], false, [], [GATED_TOPIC],
+			[{"flag": FLAG_CONFIDED, "equals": true}], Fact.SOURCE_PLAYER_STATEMENT),
 	]
 
 static func action_entries() -> Array:

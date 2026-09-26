@@ -194,6 +194,7 @@ func _on_completed(request_id: String, response: Dictionary) -> void:
 	if not completed.ok:
 		return
 	_trusted_ids.erase(request_id)
+	var reply: Dictionary = validated.value.data()
 	var profile: Dictionary = _speakers[binding.speaker_id]
 	var event := Publication.build(request_id, binding.speaker_id, profile.name_key,
 		profile.portrait_id, validated.value)
@@ -202,7 +203,7 @@ func _on_completed(request_id: String, response: Dictionary) -> void:
 		_emit_status(request_id, ViewContract.STATUS_FAILED, Transport.MODEL_RESPONSE_INVALID, true)
 		return
 	_last_options = {}
-	for option: Dictionary in validated.value.options:
+	for option: Dictionary in reply.options:
 		_last_options[option.option_id] = option.text
 	_emit(event.value)
 
