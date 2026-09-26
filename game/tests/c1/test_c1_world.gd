@@ -51,6 +51,21 @@ func _movement(check: Callable) -> void:
 	var passable = World.from_layout(ghost).value
 	passable.integrate(Vector2(0, -1), 10.0)
 	check.call(passable.position().y < 300.0, "zero-extent object does not block movement")
+	var corner := {"player": {"spawn": Vector2(100, 100), "half_extents": Vector2(10, 10),
+		"speed": 100.0}, "walls": [Rect2(200, 200, 20, 100)], "interactables": []}
+	var diagonal = World.from_layout(corner).value
+	diagonal.integrate(Vector2(1, 1), 3.0)
+	check.call(not _overlaps_walls(diagonal),
+		"diagonal move cannot cut through obstacle corner")
+	check.call(diagonal.position().x <= 190.0 + 0.001,
+		"corner contact clamps x at first touch")
+	check.call(diagonal.position().y > 190.0,
+		"corner contact slides along the obstacle face")
+	var thin := {"player": {"spawn": Vector2(100, 250), "half_extents": Vector2(10, 10),
+		"speed": 100.0}, "walls": [Rect2(200, 200, 10, 100)], "interactables": []}
+	var cross = World.from_layout(thin).value
+	cross.integrate(Vector2(1, 1), 3.0)
+	check.call(not _overlaps_walls(cross), "diagonal move cannot pass a thin wall")
 
 func _validation(check: Callable) -> void:
 	check.call(not World.from_layout(null).ok, "null layout rejected")
@@ -169,3 +184,12 @@ func _occlusion(check: Callable) -> void:
 	var around = walk.candidate_for("test.npc")
 	check.call(around.ok and around.value.distance < 250.0,
 		"walking around wall clears line of sight")
+
+func _overlaps_walls(world) -> bool:
+	var half: Vector2 = world.half_extents()
+	var rect := Rect2(world.position() - half, half * 2.0)
+	var layout: Dictionary = world.layout()
+	for wall: Rect2 in layout.walls:
+		if rect.intersects(wall):
+			return true
+	return false

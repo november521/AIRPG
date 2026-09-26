@@ -28,6 +28,8 @@ var _cooldown_label: Label
 var _status_label: Label
 
 func configure(use_case: UseCase) -> void:
+	if _wired:
+		_unwire()
 	_use_case = use_case
 	if is_node_ready():
 		_wire()

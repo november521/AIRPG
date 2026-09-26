@@ -7,6 +7,7 @@ const GreyboxScene = preload("res://presentation/exploration/greybox_exploration
 func run(check: Callable, tree: SceneTree) -> void:
 	await _movement_and_focus(check, tree)
 	await _repeat_triggers(check, tree)
+	await _reconfigure(check, tree)
 	await _cleanup(check, tree)
 	await _unconfigured(check, tree)
 
@@ -114,6 +115,31 @@ func _repeat_triggers(check: Callable, tree: SceneTree) -> void:
 	tree.root.push_input(_key("investigate", false, false))
 	tree.root.push_input(_key("investigate", true, true))
 	check.call(sink.commands.size() == 3, "echo after release still does not trigger")
+	await _dispose(tree, view)
+
+func _reconfigure(check: Callable, tree: SceneTree) -> void:
+	var spawned := _spawn(tree, Fixtures.view_layout())
+	var view = spawned.view
+	var first = spawned.use_case
+	var first_sink = spawned.sink
+	await tree.process_frame
+	var second_sink = Fixtures.recording_sink()
+	var second_built := Fixtures.build(Fixtures.view_layout(), second_sink)
+	check.call(second_built.ok, "second use case builds")
+	view.configure(second_built.value)
+	await tree.process_frame
+	check.call(first.proximity_changed.get_connections().is_empty(),
+		"reconfigure detaches the old proximity callback")
+	check.call(first.cooldown_changed.get_connections().is_empty(),
+		"reconfigure detaches the old cooldown callback")
+	check.call(second_built.value.proximity_changed.get_connections().size() == 1
+		and second_built.value.cooldown_changed.get_connections().size() == 1,
+		"reconfigure attaches only the new use case")
+	first.advance(10.0)
+	tree.root.push_input(_event("interact", true))
+	tree.root.push_input(_event("interact", false))
+	check.call(first_sink.commands.is_empty(), "old use case receives no commands after reconfigure")
+	check.call(second_sink.commands.size() == 1, "new use case receives commands after reconfigure")
 	await _dispose(tree, view)
 
 func _cleanup(check: Callable, tree: SceneTree) -> void:

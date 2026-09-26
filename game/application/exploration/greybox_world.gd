@@ -5,6 +5,7 @@ extends RefCounted
 
 const Result = preload("res://shared/result.gd")
 const Contract = preload("res://application/contracts/exploration_contract.gd")
+const Geometry = preload("res://application/exploration/greybox_geometry.gd")
 
 const CODE_LAYOUT_INVALID: String = "EXPLORATION_LAYOUT_INVALID"
 const CODE_SPAWN_BLOCKED: String = "EXPLORATION_SPAWN_BLOCKED"
@@ -17,6 +18,9 @@ const _ROOT_KEYS: Array[String] = ["player", "walls", "interactables"]
 const _PLAYER_KEYS: Array[String] = ["spawn", "half_extents", "speed"]
 const _ITEM_KEYS: Array[String] = ["target_id", "prompt_key", "position", "radius",
 	"solid_half_extents", "blocks_sight"]
+
+const MAX_SLIDE_PASSES: int = 8
+const CONTACT_EPSILON: float = 1e-9
 
 var _spawn: Vector2 = Vector2.ZERO
 var _position: Vector2 = Vector2.ZERO
@@ -49,13 +53,29 @@ func speed() -> float:
 func integrate(axis: Vector2, delta: float) -> void:
 	if not axis.is_finite() or not is_finite(delta) or delta <= 0.0:
 		return
-	var motion := axis.limit_length(1.0) * _speed * delta
-	if not motion.is_finite():
+	var remaining := axis.limit_length(1.0) * _speed * delta
+	if not remaining.is_finite() or remaining.is_zero_approx():
 		return
-	if motion.x != 0.0:
-		_position.x = _swept_x(_position.x, _position.x + motion.x)
-	if motion.y != 0.0:
-		_position.y = _swept_y(_position.y, _position.y + motion.y)
+	for _pass in MAX_SLIDE_PASSES:
+		var hit := _earliest_hit(_position, remaining)
+		if hit.is_empty():
+			_position += remaining
+			return
+		var impact: float = hit.t
+		var target := _position + remaining * impact
+		if hit.contact.has(0):
+			target.x = hit.contact[0]
+		if hit.contact.has(1):
+			target.y = hit.contact[1]
+		_position = target
+		var left := remaining * (1.0 - impact)
+		if hit.axis == 0:
+			left.x = 0.0
+		else:
+			left.y = 0.0
+		if left.is_zero_approx():
+			return
+		remaining = left
 
 func candidate_for(target_id: String) -> RefCounted:
 	var item := _find(target_id)
@@ -125,7 +145,7 @@ func _configure_player(value: Variant) -> String:
 			return CODE_LAYOUT_INVALID
 	if not value.spawn is Vector2 or not value.half_extents is Vector2:
 		return CODE_LAYOUT_INVALID
-	if not value.spawn.is_finite() or not _positive(value.half_extents):
+	if not value.spawn.is_finite() or not Geometry.positive_extents(value.half_extents):
 		return CODE_LAYOUT_INVALID
 	if not (value.speed is float or value.speed is int):
 		return CODE_LAYOUT_INVALID
@@ -143,7 +163,7 @@ func _configure_walls(value: Variant) -> String:
 	if not value is Array:
 		return CODE_LAYOUT_INVALID
 	for entry: Variant in value:
-		if not entry is Rect2 or not _positive(entry.size):
+		if not entry is Rect2 or not Geometry.positive_extents(entry.size):
 			return CODE_LAYOUT_INVALID
 		_solids.append({"rect": entry, "sight": true, "owner_id": ""})
 	return ""
@@ -180,7 +200,7 @@ func _configure_item(entry: Dictionary, seen: Dictionary) -> String:
 	seen[target_id] = true
 	var half := Vector2.ZERO
 	if entry.has("solid_half_extents"):
-		if not entry.solid_half_extents is Vector2 or not _non_negative(entry.solid_half_extents):
+		if not entry.solid_half_extents is Vector2 or not Geometry.non_negative_extents(entry.solid_half_extents):
 			return CODE_LAYOUT_INVALID
 		half = entry.solid_half_extents
 	var sight := false
@@ -215,76 +235,60 @@ func _occluded(item: Dictionary) -> bool:
 	for solid: Dictionary in _solids:
 		if not solid.sight or solid.owner_id == item.target_id:
 			continue
-		if _segment_hits_rect(_position, item.position, solid.rect):
+		if Geometry.segment_hits_rect(_position, item.position, solid.rect):
 			return true
 	return false
 
-func _swept_x(from_x: float, to_x: float) -> float:
-	if to_x > from_x:
-		for solid: Dictionary in _solids:
-			if not _overlaps_y(solid.rect):
-				continue
-			var limit: float = solid.rect.position.x - _half.x
-			if from_x <= limit and to_x > limit:
-				to_x = minf(to_x, limit)
-	else:
-		for solid: Dictionary in _solids:
-			if not _overlaps_y(solid.rect):
-				continue
-			var limit: float = solid.rect.end.x + _half.x
-			if from_x >= limit and to_x < limit:
-				to_x = maxf(to_x, limit)
-	return to_x
+func _earliest_hit(origin: Vector2, motion: Vector2) -> Dictionary:
+	var best: Dictionary = {}
+	var best_time := INF
+	for solid: Dictionary in _solids:
+		var hit := _slab_hit(origin, motion, solid.rect)
+		if not hit.is_empty() and hit.t < best_time:
+			best = hit
+			best_time = hit.t
+	return best
 
-func _swept_y(from_y: float, to_y: float) -> float:
-	if to_y > from_y:
-		for solid: Dictionary in _solids:
-			if not _overlaps_x(solid.rect):
-				continue
-			var limit: float = solid.rect.position.y - _half.y
-			if from_y <= limit and to_y > limit:
-				to_y = minf(to_y, limit)
-	else:
-		for solid: Dictionary in _solids:
-			if not _overlaps_x(solid.rect):
-				continue
-			var limit: float = solid.rect.end.y + _half.y
-			if from_y >= limit and to_y < limit:
-				to_y = maxf(to_y, limit)
-	return to_y
+func _slab_hit(origin: Vector2, motion: Vector2, rect: Rect2) -> Dictionary:
+	var low := rect.position - _half
+	var high := rect.end + _half
+	var x := _axis_slab(origin.x, motion.x, low.x, high.x)
+	if not x.ok:
+		return {}
+	var y := _axis_slab(origin.y, motion.y, low.y, high.y)
+	if not y.ok:
+		return {}
+	var enter := maxf(x.enter, y.enter)
+	var exit := minf(x.exit, y.exit)
+	if enter > exit:
+		return {}
+	if enter < 0.0:
+		if exit <= 0.0:
+			return {}
+		enter = 0.0
+	if enter > 1.0:
+		return {}
+	var contact: Dictionary = {}
+	if x.enter >= enter - CONTACT_EPSILON:
+		contact[0] = _contact_point(motion.x, origin.x, low.x, high.x)
+	if y.enter >= enter - CONTACT_EPSILON:
+		contact[1] = _contact_point(motion.y, origin.y, low.y, high.y)
+	return {"t": enter, "axis": 0 if x.enter >= y.enter else 1, "contact": contact}
 
-func _overlaps_x(rect: Rect2) -> bool:
-	return _position.x - _half.x < rect.end.x and _position.x + _half.x > rect.position.x
+func _axis_slab(origin: float, motion: float, low: float, high: float) -> Dictionary:
+	if motion == 0.0:
+		return {"ok": origin > low and origin < high, "enter": -INF, "exit": INF}
+	var inverse := 1.0 / motion
+	var first := (low - origin) * inverse
+	var second := (high - origin) * inverse
+	return {"ok": true, "enter": minf(first, second), "exit": maxf(first, second)}
 
-func _overlaps_y(rect: Rect2) -> bool:
-	return _position.y - _half.y < rect.end.y and _position.y + _half.y > rect.position.y
+func _contact_point(motion: float, origin: float, low: float, high: float) -> float:
+	if motion > 0.0:
+		return low
+	if motion < 0.0:
+		return high
+	return origin
 
 func _player_rect(center: Vector2) -> Rect2:
-	return Rect2(center - _half, _half * 2.0)
-
-func _segment_hits_rect(from: Vector2, to: Vector2, rect: Rect2) -> bool:
-	var delta := to - from
-	var low := 0.0
-	var high := 1.0
-	var p := [-delta.x, delta.x, -delta.y, delta.y]
-	var q := [from.x - rect.position.x, rect.end.x - from.x,
-		from.y - rect.position.y, rect.end.y - from.y]
-	for index: int in 4:
-		if p[index] == 0.0:
-			if q[index] < 0.0:
-				return false
-			continue
-		var ratio: float = q[index] / p[index]
-		if p[index] < 0.0:
-			low = maxf(low, ratio)
-		else:
-			high = minf(high, ratio)
-		if low > high:
-			return false
-	return true
-
-func _positive(value: Vector2) -> bool:
-	return value.is_finite() and value.x > 0.0 and value.y > 0.0
-
-func _non_negative(value: Vector2) -> bool:
-	return value.is_finite() and value.x >= 0.0 and value.y >= 0.0
+	return Geometry.player_rect(center, _half)
