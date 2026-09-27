@@ -22,10 +22,15 @@ $engine = ./scripts/install_engine.ps1
 
 # 打开编辑器；也可以从 Godot 项目管理器导入 game/project.godot
 & './.tools/godot/Godot_v4.7.2-stable_win64.exe' --editor --path game
+
+# 只启动游戏（先导入资源再开窗口，不运行测试）
+./scripts/start_game.ps1 -Godot './.tools/godot/Godot_v4.7.2-stable_win64_console.exe'
 ```
 
-运行后显示工程就绪页；按钮切换到场景容器；开发构建可按 F3 查看诊断。
-WASD / E / Q 的动作绑定已加载，角色移动和交互功能尚未实现。
+运行后显示 AIRPG 开始界面；「开始游戏」淡出后切换到现有场景容器；
+「设置」按当前产品要求可选中但点击无操作；「退出游戏」淡出后关闭程序。
+开发构建可按 F3 查看诊断。WASD / E / Q 的动作绑定已加载，
+角色移动和交互功能尚未实现：灰盒探索只在后续集成分支接入。
 无 API 密钥也能启动和运行全部测试；不会发送模型请求。
 
 质量入口依次检查依赖方向/循环、引擎导入、行为测试、真实启动。

@@ -1,0 +1,195 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://presentation/menu/start_screen.gd" id="1_screen"]
+[ext_resource type="Texture2D" path="res://presentation/menu/art/airpg_gold_v2.png" id="2_logo"]
+[ext_resource type="Shader" path="res://presentation/menu/art/foil_shine.gdshader" id="3_gold"]
+[ext_resource type="Script" path="res://presentation/menu/fate_sigil.gd" id="4_sigil"]
+[ext_resource type="Shader" path="res://presentation/menu/art/engraving.gdshader" id="5_engraving"]
+[ext_resource type="Shader" path="res://presentation/menu/art/atmosphere.gdshader" id="6_air"]
+[ext_resource type="Theme" path="res://presentation/menu/art/menu_theme.tres" id="7_theme"]
+[ext_resource type="PackedScene" path="res://presentation/menu/menu_entry.tscn" id="8_entry"]
+[ext_resource type="Texture2D" path="res://presentation/menu/art/smoke_gold_v1.png" id="9_smoke"]
+[ext_resource type="Shader" path="res://presentation/menu/art/smoke_flow.gdshader" id="10_flow"]
+[ext_resource type="Shader" path="res://presentation/menu/art/celestial_lights.gdshader" id="11_lights"]
+
+[sub_resource type="ShaderMaterial" id="GoldMaterial"]
+shader = ExtResource("3_gold")
+
+[sub_resource type="ShaderMaterial" id="SigilMaterial"]
+shader = ExtResource("5_engraving")
+shader_parameter/opacity = 0.72
+
+[sub_resource type="ShaderMaterial" id="AirMaterial"]
+shader = ExtResource("6_air")
+
+[sub_resource type="ShaderMaterial" id="InnerOrbitMaterial"]
+shader = ExtResource("5_engraving")
+shader_parameter/opacity = 0.72
+shader_parameter/angular_speed = 0.022
+
+[sub_resource type="ShaderMaterial" id="CrossingOrbitMaterial"]
+shader = ExtResource("5_engraving")
+shader_parameter/opacity = 0.72
+shader_parameter/angular_speed = -0.016
+
+[sub_resource type="ShaderMaterial" id="DottedOrbitMaterial"]
+shader = ExtResource("5_engraving")
+shader_parameter/opacity = 0.72
+shader_parameter/angular_speed = 0.012
+
+[sub_resource type="ShaderMaterial" id="SmokeMaterial"]
+shader = ExtResource("10_flow")
+
+[sub_resource type="ShaderMaterial" id="LightsMaterial"]
+shader = ExtResource("11_lights")
+
+[node name="Home" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("7_theme")
+script = ExtResource("1_screen")
+
+[node name="Black" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.003, 0.003, 0.004, 1)
+
+[node name="Design" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="Smoke" type="TextureRect" parent="Design"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("9_smoke")
+expand_mode = 1
+stretch_mode = 0
+material = SubResource("SmokeMaterial")
+
+[node name="Atmosphere" type="ColorRect" parent="Design"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("AirMaterial")
+
+[node name="Artwork" type="Control" parent="Design"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="FateSigil" type="Control" parent="Design/Artwork"]
+layout_mode = 0
+offset_left = 500.0
+offset_top = 62.0
+offset_right = 1420.0
+offset_bottom = 704.0
+mouse_filter = 2
+material = SubResource("SigilMaterial")
+script = ExtResource("4_sigil")
+
+[node name="InnerOrbit" type="Control" parent="Design/Artwork"]
+layout_mode = 0
+offset_left = 500.0
+offset_top = 62.0
+offset_right = 1420.0
+offset_bottom = 704.0
+mouse_filter = 2
+material = SubResource("InnerOrbitMaterial")
+script = ExtResource("4_sigil")
+layer = 1
+
+[node name="CrossingOrbit" type="Control" parent="Design/Artwork"]
+layout_mode = 0
+offset_left = 500.0
+offset_top = 62.0
+offset_right = 1420.0
+offset_bottom = 704.0
+mouse_filter = 2
+material = SubResource("CrossingOrbitMaterial")
+script = ExtResource("4_sigil")
+layer = 2
+
+[node name="DottedOrbit" type="Control" parent="Design/Artwork"]
+layout_mode = 0
+offset_left = 500.0
+offset_top = 62.0
+offset_right = 1420.0
+offset_bottom = 704.0
+mouse_filter = 2
+material = SubResource("DottedOrbitMaterial")
+script = ExtResource("4_sigil")
+layer = 3
+
+[node name="Logo" type="TextureRect" parent="Design/Artwork"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 410.0
+offset_top = 154.0
+offset_right = 1510.0
+offset_bottom = 612.0
+mouse_filter = 2
+texture = ExtResource("2_logo")
+expand_mode = 1
+stretch_mode = 0
+material = SubResource("GoldMaterial")
+
+[node name="CelestialLights" type="ColorRect" parent="Design/Artwork"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("LightsMaterial")
+
+[node name="Menu" type="VBoxContainer" parent="Design"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 720.0
+offset_top = 750.0
+offset_right = 1200.0
+offset_bottom = 994.0
+theme_override_constants/separation = 14
+
+[node name="StartButton" parent="Design/Menu" instance=ExtResource("8_entry")]
+unique_name_in_owner = true
+layout_mode = 2
+text_key = "menu.start_game"
+
+[node name="SettingsButton" parent="Design/Menu" instance=ExtResource("8_entry")]
+unique_name_in_owner = true
+layout_mode = 2
+text_key = "menu.settings"
+
+[node name="ExitButton" parent="Design/Menu" instance=ExtResource("8_entry")]
+unique_name_in_owner = true
+layout_mode = 2
+text_key = "menu.exit_game"

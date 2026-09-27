@@ -1,0 +1,18 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[sub_resource type="SystemFont" id="MenuFont"]
+font_names = PackedStringArray("Noto Serif CJK SC", "Source Han Serif SC", "SimSun")
+font_weight = 400
+
+[sub_resource type="StyleBoxEmpty" id="NoBox"]
+
+[resource]
+default_font = SubResource("MenuFont")
+default_font_size = 42
+Button/colors/font_color = Color(0.77, 0.70, 0.58, 1)
+Button/colors/font_disabled_color = Color(0.36, 0.33, 0.26, 1)
+Button/styles/normal = SubResource("NoBox")
+Button/styles/hover = SubResource("NoBox")
+Button/styles/pressed = SubResource("NoBox")
+Button/styles/focus = SubResource("NoBox")
+Button/styles/disabled = SubResource("NoBox")

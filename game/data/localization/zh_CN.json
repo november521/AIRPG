@@ -1,5 +1,8 @@
 {
   "app.title": "AIRPG",
+  "menu.start_game": "开始游戏",
+  "menu.settings": "设置",
+  "menu.exit_game": "退出游戏",
   "shell.title": "工程骨架已就绪",
   "shell.description": "配置与内容检查已通过。当前尚未导入正式故事，AI 接口处于未配置状态。",
   "shell.open": "查看场景容器",
