@@ -5,12 +5,29 @@ const Router = preload("res://presentation/navigation/scene_router.gd")
 const HOME = preload("res://presentation/shell/home.tscn")
 const WORKSPACE = preload("res://presentation/shell/workspace.tscn")
 const MAIN = preload("res://bootstrap/main.tscn")
+## Start-screen detection by script file keeps this harness free of the view's public surface.
+const START_SCRIPT = "start_screen.gd"
 
 var _checks: int = 0
 var _failures: Array[String] = []
 
 func _initialize() -> void:
 	call_deferred("_run")
+	call_deferred("_arm_watchdog")
+
+## A script error inside _run aborts it forever; without this the process would hang instead of failing.
+func _arm_watchdog() -> void:
+	var watchdog := create_timer(300.0)
+	watchdog.timeout.connect(_on_watchdog)
+
+func _on_watchdog() -> void:
+	printerr("FAIL: test run exceeded its 300 second budget")
+	print("AIRPG_TESTS: %d checks, %d failures" % [_checks, _failures.size() + 1])
+	quit(1)
+
+func _is_start_view(view: Node) -> bool:
+	var script: Script = view.get_script()
+	return script != null and script.resource_path.get_file() == START_SCRIPT
 
 func _check(condition: bool, description: String) -> void:
 	_checks += 1
@@ -28,12 +45,17 @@ func _run() -> void:
 	_check(main.boot_ready, "main scene booted")
 	var host: Node = main.get_node("SceneHost")
 	_check(host.get_child_count() == 1, "one active shell")
+	_check(_is_start_view(host.get_child(0)), "boot route shows the start screen")
+	# Navigation itself is asserted here; the start screen's own fade timing is left to
+	# presentation tests because a --script run does not advance process frames reliably.
 	host.get_child(0).route_requested.emit("workspace")
 	await process_frame
-	_check(host.get_child_count() == 1 and host.get_child(0).workspace, "UI navigation reaches workspace")
+	_check(host.get_child_count() == 1 and host.get_child(0).workspace,
+		"navigation from the start screen reaches workspace")
 	host.get_child(0).route_requested.emit("home")
 	await process_frame
-	_check(host.get_child_count() == 1 and not host.get_child(0).workspace, "return navigation frees previous view")
+	_check(host.get_child_count() == 1 and _is_start_view(host.get_child(0)),
+		"return navigation shows the start screen again")
 	var router := Router.new()
 	root.add_child(router)
 	var isolated_host := Node.new()

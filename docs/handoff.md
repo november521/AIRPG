@@ -1,5 +1,34 @@
 # 接续记录
 
+## 开始界面合入（2026-09-27）
+
+用户确认美术检查无问题后，把 `feature/start-screen` 的开始界面部分合入当前开发分支。
+只带界面本体，不带同一分支上游的波次 2 接线，因此本轮没有引入 I1 对话视图、
+G1 DeepSeek 适配器和灰盒探索路由；那些仍只在 `integration/slice-wiring` 上。
+
+来源提交 `fb2272c`；合入文件：`game/presentation/menu/**`（场景、脚本、着色器、素材）、
+`game/data/localization/zh_CN.json` 的 `menu.*` 三条、`scripts/start_game.ps1`，
+以及 `docs/start-screen.md`、`docs/start-screen-art.md`。手工改写的只有
+`game/bootstrap/main.gd`：`home` 路由从 `presentation/shell/home.tscn` 换成开始界面，
+并接上 `quit_requested`，在切换视图和释放旧视图时断开。
+
+`home.tscn` 与 `shell_view.gd` 未改动，仍由 `workspace.tscn` 使用。
+没有把对话/探索接线、`verify.ps1` 的套件数断言和波次 2 文档段落一并带入。
+
+本机合入提交 `b721f3c`。验证：`./scripts/verify.ps1` 通过 —— 架构检查 52 个源/场景文件、
+3 项负向检查、引擎导入（三个新纹理重新导入）、行为测试 95 项 0 失败、真实启动含
+`AIRPG_BOOT_READY`。另做一次非 headless 图形启动（RTX 4060 / OpenGL 3.3.0 兼容模式），
+日志 `artifacts/start-screen-gpu.engine.log` 无脚本、纹理、着色器错误并含启动标记；
+截图确认 Logo、烟雾、轨道和文字菜单正常绘制。
+
+`run_tests.gd` 的启动断言原先跟着 `shell_view` 走，换成开始界面后会抛脚本错误并让进程
+永久挂起。现改为断言开始界面为启动路由、导航到 workspace、返回后再次显示开始界面，
+并加 300 秒预算，超时判失败而不是挂住。离场淡出（0.3 秒）的时序没有断言语义：
+`--script` 运行下 `process_frame` 推进远慢于真实时间，已如实留作展示层测试。
+
+未做：菜单淡出/重复点击的手工时序复核、不同 DPI 与宽高比、导出包字体与纹理、
+手柄连续导航、性能预算。开始界面合入路径本身尚未做独立对抗复核。
+
 更新：2026-09-26。任务：建立 AIRPG 工程架构骨架并完成并行开发前置门槛。
 
 ## 已完成

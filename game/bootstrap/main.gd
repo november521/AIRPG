@@ -4,11 +4,13 @@ const JsonFile = preload("res://infrastructure/content/json_file.gd")
 const Localization = preload("res://infrastructure/localization/json_localization.gd")
 const Keyboard = preload("res://infrastructure/input/keyboard_input.gd")
 const Router = preload("res://presentation/navigation/scene_router.gd")
-const HOME = preload("res://presentation/shell/home.tscn")
+const HOME = preload("res://presentation/menu/start_screen.tscn")
 const WORKSPACE = preload("res://presentation/shell/workspace.tscn")
+const StartScreen = preload("res://presentation/menu/start_screen.gd")
 
 var _services: Dictionary = {}
 var _router: Router
+var _active_view: Control
 var boot_ready: bool = false
 
 func _ready() -> void:
@@ -42,9 +44,20 @@ func _navigate(route_id: String) -> void:
 		_fail(routed.code)
 		return
 	var view: Control = routed.value
+	# Disconnect immediately, including the interval before queue_free is processed.
+	if is_instance_valid(_active_view) and _active_view is StartScreen:
+		if _active_view.quit_requested.is_connected(_quit_from_menu):
+			_active_view.quit_requested.disconnect(_quit_from_menu)
+	_active_view = view
 	view.configure(_services.session, _services.pack_id, _services.content_version,
 		_services.config.debug_panel and OS.is_debug_build())
 	view.route_requested.connect(_navigate)
+	if view is StartScreen:
+		view.quit_requested.connect(_quit_from_menu)
+
+func _quit_from_menu() -> void:
+	if is_instance_valid(_active_view) and _active_view is StartScreen:
+		get_tree().quit()
 
 func _fail(code: String) -> void:
 	push_error("AIRPG_BOOT_FAILED:" + code)
