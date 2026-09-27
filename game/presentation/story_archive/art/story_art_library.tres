@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://presentation/story_archive/art/story_art_library.gd" id="1"]
+[ext_resource type="Texture2D" path="res://presentation/story_archive/art/deadlight_road_v1.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+textures = Dictionary[String, Texture2D]({
+"deadlight_road": ExtResource("2")
+})

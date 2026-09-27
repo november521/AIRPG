@@ -1,0 +1,123 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="Script" path="res://presentation/story_archive/story_archive.gd" id="1"]
+[ext_resource type="Theme" path="res://presentation/story_archive/art/archive_theme.tres" id="2"]
+[ext_resource type="PackedScene" path="res://presentation/story_archive/story_preview.tscn" id="3"]
+[node name="StoryArchive" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("2")
+script = ExtResource("1")
+[node name="Black" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.018, 0.021, 0.025, 1)
+[node name="Design" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+[node name="Title" type="Label" parent="Design"]
+offset_left = 64.0
+offset_top = 52.0
+offset_right = 850.0
+offset_bottom = 118.0
+text = "archive.title"
+theme_override_font_sizes/font_size = 54
+theme_override_colors/font_color = Color(0.87, 0.80, 0.62, 1)
+[node name="Subtitle" type="Label" parent="Design"]
+offset_left = 68.0
+offset_top = 126.0
+text = "archive.subtitle"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.52, 0.50, 0.44, 1)
+[node name="Back" type="Button" parent="Design"]
+unique_name_in_owner = true
+offset_left = 1616.0
+offset_top = 74.0
+offset_right = 1856.0
+offset_bottom = 134.0
+text = "archive.back"
+[node name="Rule" type="ColorRect" parent="Design"]
+offset_left = 64.0
+offset_top = 176.0
+offset_right = 1856.0
+offset_bottom = 177.0
+color = Color(0.45, 0.39, 0.26, 0.55)
+mouse_filter = 2
+[node name="Collection" type="Label" parent="Design"]
+offset_left = 68.0
+offset_top = 206.0
+text = "archive.collection"
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.66, 0.63, 0.53, 1)
+[node name="Scroll" type="ScrollContainer" parent="Design"]
+offset_left = 64.0
+offset_top = 256.0
+offset_right = 564.0
+offset_bottom = 936.0
+horizontal_scroll_mode = 0
+follow_focus = true
+[node name="List" type="VBoxContainer" parent="Design/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+[node name="Count" type="Label" parent="Design"]
+unique_name_in_owner = true
+offset_left = 84.0
+offset_top = 962.0
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.49, 0.49, 0.46, 1)
+[node name="Preview" parent="Design" instance=ExtResource("3")]
+unique_name_in_owner = true
+layout_mode = 0
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 606.0
+offset_top = 208.0
+offset_right = 1856.0
+offset_bottom = 922.0
+[node name="Empty" type="Label" parent="Design"]
+unique_name_in_owner = true
+visible = false
+offset_left = 606.0
+offset_top = 208.0
+offset_right = 1856.0
+offset_bottom = 922.0
+horizontal_alignment = 1
+vertical_alignment = 1
+[node name="Status" type="Label" parent="Design"]
+unique_name_in_owner = true
+offset_left = 648.0
+offset_top = 934.0
+offset_right = 1490.0
+offset_bottom = 996.0
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.83, 0.71, 0.51, 1)
+autowrap_mode = 3
+vertical_alignment = 1
+[node name="Enter" type="Button" parent="Design"]
+unique_name_in_owner = true
+offset_left = 1520.0
+offset_top = 938.0
+offset_right = 1814.0
+offset_bottom = 1000.0
+text = "archive.enter"
+theme_override_font_sizes/font_size = 30
+disabled = true
+[node name="Hint" type="Label" parent="Design"]
+offset_left = 606.0
+offset_top = 1028.0
+offset_right = 1856.0
+offset_bottom = 1054.0
+text = "archive.hint"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.45, 0.46, 0.44, 1)

@@ -1,5 +1,23 @@
 # 接续记录
 
+## 故事档案合入（2026-09-28）
+
+本轮来源为 `feature/story-archive` 的两个提交 `2f2a18a`、`0328457`。该分支是从
+开始界面 `fb2272c` 长出来的，底下压着 I1 对话视图、G1 DeepSeek 传输和灰盒探索接线；
+直接合并会把这些无关模块带进 main。因此没有合并分支，而是在 `main` 上新建
+`feature/story-archive-isolated` 只 cherry-pick 这两个提交，丢掉继承历史。
+
+分支名不影响实现：主菜单 Start 接 story_archive，默认 deadlight；列表、插画、
+简介、标签和启动边界，以及进入、切换、返回动画都已实现。主菜单美术与布局未改，
+返回时跳过长开场。故事元数据、本地化和原生美术资源表可扩展，新生成的雨夜道路插画
+已在项目内。实际游戏启动仍未实现：端口明确拒绝、恢复档案页，不跳灰盒也不走假流程。
+天气与音频按本次范围不实现。文件清单、资源来源与边界见 `docs/story-archive.md`。
+
+冲突解决只保留本功能需要的东西：`main.gd` 不引入 exploration/GreyboxComposition 路由，
+路由表加 `story_archive`；`run_tests.gd` 保留本机已修好的启动断言（开始界面为启动路由），
+只追加档案套件与 `AIRPG_ARCHIVE_TESTS` 标记；`verify.ps1` 的套件断言只列本分支存在的
+`BASE_TESTS`、`ARCHIVE_TESTS`，没有照抄 C1/I1/G1/INTEGRATION 那几项。
+
 ## 开始界面合入（2026-09-27）
 
 用户确认美术检查无问题后，把 `feature/start-screen` 的开始界面部分合入当前开发分支。

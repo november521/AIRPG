@@ -1,0 +1,22 @@
+{
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "stories"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "stories": {
+      "type": "array", "maxItems": 64,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "title_key", "description_key", "tag_keys", "art_key", "accent"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+          "title_key": {"type": "string", "pattern": "^[a-z][a-z0-9_.]{0,127}$"},
+          "description_key": {"type": "string", "pattern": "^[a-z][a-z0-9_.]{0,127}$"},
+          "tag_keys": {"type": "array", "maxItems": 6, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.]{0,127}$"}},
+          "art_key": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+          "accent": {"type": "array", "maxItems": 3, "items": {"type": "number", "minimum": 0, "maximum": 1}}
+        }
+      }
+    }
+  }
+}

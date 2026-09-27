@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "stories": [
+    {
+      "id": "deadlight",
+      "title_key": "story.deadlight.title",
+      "description_key": "story.deadlight.description",
+      "tag_keys": ["story.tag.mystery", "story.tag.investigation", "story.tag.unknown_fear"],
+      "art_key": "deadlight_road",
+      "accent": [0.48, 0.60, 0.66]
+    }
+  ]
+}
