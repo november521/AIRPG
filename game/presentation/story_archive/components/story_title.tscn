@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://presentation/story_archive/components/story_title.gd" id="1"]
+[node name="Title" type="Label"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 72
+theme_override_colors/font_color = Color(0.93, 0.86, 0.67, 1)
+text_overrun_behavior = 3
+mouse_filter = 2
+script = ExtResource("1")

@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://presentation/story_archive/components/story_tags.gd" id="1"]
+[node name="Tags" type="HFlowContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 6
+mouse_filter = 2
+script = ExtResource("1")

@@ -29,14 +29,8 @@ func _apply(story: Dictionary, artwork: Texture2D) -> void:
 	current_id = story.id
 	$Art.texture = artwork
 	$Missing.visible = artwork == null
-	$Info/Title.text = tr(story.title_key)
-	$Info/DescriptionScroll/Description.text = tr(story.description_key)
-	$Info/DescriptionScroll.scroll_vertical = 0
-	var tags := PackedStringArray()
-	for key: String in story.tag_keys:
-		tags.append(tr(key))
-	$Info/Tags.text = tr("archive.tag_separator").join(tags)
-	$Accent.color = Color(story.accent[0], story.accent[1], story.accent[2], 0.7)
+	$Placeholder.visible = story.get("preview_only", false)
+	$Info.present(story)
 
 func _exit_tree() -> void:
 	_revision += 1

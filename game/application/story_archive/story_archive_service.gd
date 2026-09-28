@@ -19,5 +19,7 @@ func catalog_error() -> String:
 func request_start(story_id: String) -> RefCounted:
 	for story: Dictionary in _stories:
 		if story.id == story_id:
+			if story.get("preview_only", false):
+				return Result.failure("STORY_PREVIEW_ONLY")
 			return _launcher.start_story(story_id)
 	return Result.failure("STORY_UNKNOWN")

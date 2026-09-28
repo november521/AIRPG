@@ -30,7 +30,7 @@ static func build(config_path: String = "res://data/config/app.json") -> RefCoun
 	var initialized := state.configure(content.value.flags)
 	if not initialized.ok:
 		return initialized
-	var archive := StoryArchive.build()
+	var archive := StoryArchive.build(OS.is_debug_build() and config.value.get("story_archive_placeholders", false))
 	return Result.success({"session": Session.new(state), "provider": DisabledProvider.new(),
 		"story_archive": archive.service, "story_art": archive.art,
 		"config": config.value, "pack_id": content.value.pack_id,

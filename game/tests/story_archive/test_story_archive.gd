@@ -7,6 +7,7 @@ const JsonFile = preload("res://infrastructure/content/json_file.gd")
 const Localization = preload("res://infrastructure/localization/json_localization.gd")
 const PAGE = preload("res://presentation/story_archive/story_archive.tscn")
 const MAIN = preload("res://bootstrap/main.tscn")
+const ArchiveComposition = preload("res://bootstrap/story_archive_composition.gd")
 
 class Spy extends Launcher:
 	var calls: Array[String] = []
@@ -24,6 +25,7 @@ func run(check: Callable, tree: SceneTree) -> void:
 	messages["test.archive.tag"] = "测试标签"
 	Localization.install(messages, "zh_CN")
 	_data(check, raw, schema, messages)
+	_placeholders(check)
 	await _view(check, tree, raw.stories)
 	await _production(check, tree)
 
@@ -80,8 +82,8 @@ func _view(check: Callable, tree: SceneTree, entries: Array) -> void:
 	check.call(view._enter.disabled, "ARCH: launch disabled until preview and metadata match")
 	await tree.create_timer(0.55).timeout
 	check.call(view._preview.get_node("Info/Title").text == "测试夹具标题", "ARCH: switch updates distinct title")
-	check.call(view._preview.get_node("Info/DescriptionScroll/Description").text == "仅用于切换回归的测试简介。", "ARCH: switch updates distinct description")
-	check.call(view._preview.get_node("Info/Tags").text == "测试标签", "ARCH: switch updates distinct tags")
+	check.call(view._preview.get_node("Info/Description/Text").text == "仅用于切换回归的测试简介。", "ARCH: switch updates distinct description")
+	check.call(view._preview.get_node("Info/Tags").get_child(0).text == "测试标签", "ARCH: switch updates distinct tags")
 	view._select("fixture_1")
 	view._select("deadlight")
 	await tree.create_timer(0.55).timeout
@@ -171,6 +173,15 @@ func _production(check: Callable, tree: SceneTree) -> void:
 	var archive: Control = host.get_child(0)
 	check.call(archive.name == "StoryArchive" and host.get_child_count() == 1, "ARCH: real Start button reaches archive")
 	check.call(archive._preview.get_node("Art").texture != null, "ARCH: production artwork bundled and resolved")
+	check.call(archive._cards[0].get_node("Content/Title").text == "死光", "ARCH: card has no ordinal prefix")
+	check.call(archive._cards.size() == 4, "ARCH: development composition displays three placeholders")
+	archive._cards[3].grab_focus()
+	await tree.create_timer(0.55).timeout
+	check.call(archive._preview_only and archive._enter.disabled, "ARCH: placeholder shows but cannot launch from UI")
+	check.call(archive._preview.get_node("Placeholder").visible, "ARCH: placeholder art clearly labeled")
+	check.call(archive._cards[3].has_focus() and archive._cards[3].get_parent().get_parent().scroll_vertical > 0, "ARCH: keyboard scroll follows last placeholder")
+	archive._select("deadlight")
+	await tree.create_timer(0.55).timeout
 	archive.get_node("%Enter").pressed.emit()
 	await tree.create_timer(0.8).timeout
 	check.call(main._services.session.read_state() == state_before, "ARCH: rejected launch does not mutate gameplay state")
@@ -187,3 +198,15 @@ func _production(check: Callable, tree: SceneTree) -> void:
 	check.call(host.get_child(0)._selected_id == "deadlight", "ARCH: reentry starts clean")
 	main.queue_free()
 	await tree.process_frame
+
+func _placeholders(check: Callable) -> void:
+	var official := ArchiveComposition.build(false)
+	var preview := ArchiveComposition.build(true)
+	check.call(official.service.list_stories().size() == 1, "ARCH: default composition contains no preview entries")
+	check.call(preview.service.list_stories().size() == 4, "ARCH: preview entries loaded from separate config")
+	var spy := Spy.new()
+	var service := Service.new(preview.service.list_stories(), spy)
+	for entry: Dictionary in service.list_stories():
+		if entry.get("preview_only", false):
+			check.call(service.request_start(entry.id).code == "STORY_PREVIEW_ONLY", "ARCH: preview entry denied by application " + entry.id)
+	check.call(spy.calls.is_empty(), "ARCH: placeholder IDs never reach real launch port")

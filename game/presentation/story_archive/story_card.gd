@@ -12,14 +12,12 @@ func _ready() -> void:
 	mouse_entered.connect(func() -> void: _hovered = true; _refresh())
 	mouse_exited.connect(func() -> void: _hovered = false; _refresh())
 
-func configure(story: Dictionary, artwork: Texture2D, number: int) -> void:
+func configure(story: Dictionary, artwork: Texture2D) -> void:
 	story_id = story.id
 	$Content/Cover.texture = artwork
-	$Content/Title.text = "%02d  /  %s" % [number, tr(story.title_key)]
-	var tags := PackedStringArray()
-	for key: String in story.tag_keys:
-		tags.append(tr(key))
-	$Content/Tags.text = tr("archive.tag_separator").join(tags)
+	$Content/Cover/Placeholder.visible = story.get("preview_only", false)
+	$Content/Title.present(story.title_key)
+	$Content/Tags.present(story.tag_keys)
 	tooltip_text = tr(story.title_key)
 
 func set_selected(value: bool) -> void:

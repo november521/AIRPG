@@ -3,7 +3,6 @@ const Service = preload("res://application/story_archive/story_archive_service.g
 const Card = preload("res://presentation/story_archive/story_card.gd")
 const CARD = preload("res://presentation/story_archive/story_card.tscn")
 const Preview = preload("res://presentation/story_archive/story_preview.gd")
-const DESIGN_SIZE := Vector2(1920.0, 1080.0)
 signal route_requested(route_id: String)
 var _service: Service
 var _art: Dictionary = {}
@@ -12,6 +11,7 @@ var _cards: Array[Card] = []
 var _selected_id: String = ""
 var _busy: bool = false
 var _ready_to_start: bool = false
+var _preview_only: bool = false
 var _transition: Tween
 @onready var _design: Control = %Design
 @onready var _preview: Preview = %Preview
@@ -34,11 +34,12 @@ func configure(service: Service, artwork: Dictionary) -> void:
 	_service = service
 	_art = artwork.duplicate()
 	_stories = service.list_stories()
-	%Count.text = tr("archive.count").format({"count": _stories.size()})
+	var has_previews: bool = _stories.any(func(story: Dictionary) -> bool: return story.get("preview_only", false))
+	%Count.text = tr("archive.preview_count" if has_previews else "archive.count").format({"count": _stories.size()})
 	for story: Dictionary in _stories:
 		var card: Card = CARD.instantiate()
 		%List.add_child(card)
-		card.configure(story, _art.get(story.art_key) as Texture2D, _cards.size() + 1)
+		card.configure(story, _art.get(story.art_key) as Texture2D)
 		card.chosen.connect(_select)
 		_cards.append(card)
 	_link_focus()
@@ -59,9 +60,11 @@ func _select(story_id: String, immediate: bool = false) -> void:
 		if story.id != story_id:
 			continue
 		_selected_id = story_id
+		_preview_only = story.get("preview_only", false)
 		_ready_to_start = false
 		_enter.disabled = true
-		%Status.text = ""
+		%Status.text = tr("archive.preview_notice") if _preview_only else ""
+		_enter.text = tr("archive.preview_only" if _preview_only else "archive.enter")
 		for card: Card in _cards:
 			card.set_selected(card.story_id == story_id)
 		_preview.show_story(story, _art.get(story.art_key) as Texture2D, immediate)
@@ -69,8 +72,9 @@ func _select(story_id: String, immediate: bool = false) -> void:
 
 func _preview_settled(story_id: String) -> void:
 	if not _busy and story_id == _selected_id:
-		_ready_to_start = true
-		_enter.disabled = false
+		_ready_to_start = not _preview_only
+		_enter.disabled = _preview_only
+		_link_focus()
 
 func _start() -> void:
 	if _busy or not _ready_to_start or _service == null or not is_inside_tree():
@@ -129,15 +133,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _fit() -> void:
-	var factor := minf(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
+	var factor := minf(size.x / _design.size.x, size.y / _design.size.y)
 	_design.scale = Vector2.ONE * factor
-	_design.position = (size - DESIGN_SIZE * factor) * 0.5
+	_design.position = (size - _design.size * factor) * 0.5
 
 func _link_focus() -> void:
 	var controls: Array[Control] = []
 	for card: Card in _cards:
 		controls.append(card)
-	controls.append(_enter)
+	if not _enter.disabled:
+		controls.append(_enter)
 	controls.append(_back)
 	for index: int in controls.size():
 		var item: Control = controls[index]
@@ -147,7 +152,7 @@ func _link_focus() -> void:
 		item.focus_neighbor_bottom = item.get_path_to(following)
 		item.focus_previous = item.get_path_to(previous)
 		item.focus_next = item.get_path_to(following)
-		item.focus_neighbor_right = item.get_path_to(_enter if item != _enter else _back)
+		item.focus_neighbor_right = item.get_path_to(_enter if item != _enter and not _enter.disabled else _back)
 		item.focus_neighbor_left = item.get_path_to(_cards[0] if not _cards.is_empty() else _back)
 
 func _exit_tree() -> void:

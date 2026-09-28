@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3]
+[ext_resource type="Script" path="res://presentation/story_archive/components/story_details.gd" id="1"]
+[ext_resource type="PackedScene" path="res://presentation/story_archive/components/story_title.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://presentation/story_archive/components/story_tags.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://presentation/story_archive/components/story_description.tscn" id="4"]
+[node name="StoryDetails" type="VBoxContainer"]
+layout_mode = 0
+theme_override_constants/separation = 22
+mouse_filter = 2
+script = ExtResource("1")
+[node name="Title" parent="." instance=ExtResource("2")]
+[node name="Tags" parent="." instance=ExtResource("3")]
+[node name="Rule" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(380, 1)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+color = Color(0.62, 0.51, 0.31, 0.65)
+[node name="Description" parent="." instance=ExtResource("4")]

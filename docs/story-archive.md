@@ -1,5 +1,17 @@
 # 故事档案界面交付
 
+## 最新改版（2026-09-28，用户已确认观感无问题）
+
+布局改为左侧 24% 固定档案栏、右侧全幅场景，返回按钮位于左上，移除左侧及详情序号。
+标题、标签、简介分别为 components/story_title、story_tags、story_description 原生组件，
+由 story_details 组合；卡片复用标题和标签。场景负责布局，内容仍来自目录与本地化。
+三个开发占位“山间驿站 / 旧城来信 / 海岸迷雾”仅用于查看多故事列表和切换效果，
+使用明确标注的渐变美术占位，不含正式剧情。进入按钮禁用，应用层同样拒绝占位 ID。
+配置位于 data/stories/preview_catalog.json；app.json 的 story_archive_placeholders
+可关闭它们。发布构建无论该开关如何均不显示。正式 catalog.json 仍只有 deadlight。
+详见 ADR 0004。当前用户已接管后续测试；下方旧交付描述属于上一轮历史记录。
+
+
 日期：2026-09-28。分支 `feature/story-archive`。起点为主菜单 `fb2272c`。
 实际 Godot 项目：`C:/Users/31286/Desktop/AIRPG/.tools/worktrees/start-screen/game/project.godot`。
 本轮不合并 main、不推送，不改主工作区。
