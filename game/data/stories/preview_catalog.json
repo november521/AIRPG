@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "stories": [
+    {"id": "preview_station", "title_key": "preview.station.title", "description_key": "preview.station.description", "tag_keys": ["archive.preview_tag", "preview.tag.station"], "art_key": "placeholder_slate", "accent": [0.35, 0.45, 0.50]},
+    {"id": "preview_letter", "title_key": "preview.letter.title", "description_key": "preview.letter.description", "tag_keys": ["archive.preview_tag", "preview.tag.letter"], "art_key": "placeholder_amber", "accent": [0.52, 0.40, 0.25]},
+    {"id": "preview_coast", "title_key": "preview.coast.title", "description_key": "preview.coast.description", "tag_keys": ["archive.preview_tag", "preview.tag.coast"], "art_key": "placeholder_teal", "accent": [0.26, 0.44, 0.43]}
+  ]
+}

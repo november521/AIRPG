@@ -58,12 +58,23 @@ func _link_focus() -> void:
 		entry.focus_neighbor_right = NodePath(".")
 
 func _start_game() -> void:
-	_depart(route_requested.emit.bind("workspace"))
+	_depart(route_requested.emit.bind("story_archive"), 0.25)
+
+func resume_from_archive() -> void:
+	# Navigation-only change: retain the existing menu composition and artwork.
+	if _reveal != null:
+		_reveal.kill()
+	_art.modulate.a = 1.0
+	_smoke.modulate.a = 1.0
+	_menu.modulate.a = 1.0
+	_design.modulate.a = 0.0
+	_reveal = create_tween()
+	_reveal.tween_property(_design, "modulate:a", 1.0, 0.25)
 
 func _quit_game() -> void:
 	_depart(quit_requested.emit)
 
-func _depart(action: Callable) -> void:
+func _depart(action: Callable, duration: float = 0.3) -> void:
 	if _leaving:
 		return
 	_leaving = true
@@ -72,7 +83,7 @@ func _depart(action: Callable) -> void:
 	if _reveal != null:
 		_reveal.kill()
 	_departure = create_tween()
-	_departure.tween_property(_design, "modulate:a", 0.0, 0.3)
+	_departure.tween_property(_design, "modulate:a", 0.0, duration)
 	_departure.tween_callback(action)
 
 func _exit_tree() -> void:

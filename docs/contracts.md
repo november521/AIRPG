@@ -1,5 +1,22 @@
 # 契约与版本
 
+## 故事档案 v1（2026-09-28）
+
+追加 ADR 0004：开发占位元数据由组装层附加 preview_only=true；
+StoryArchiveService.request_start 对其返回 STORY_PREVIEW_ONLY，绝不调用启动端口。
+该标记不是 JSON 可执行权限，正式目录 v1 格式未变。app 配置可选字段
+story_archive_placeholders 默认为 false，发布构建忽略启用请求。
+
+详见 ADR 0003。新增而不改动 A1 契约：
+
+- `domain/content/story_catalog.gd`：全量校验目录 v1，返回深拷贝元数据列表。
+- `StoryArchiveService.list_stories()`：深拷贝列表；`catalog_error()`：稳定目录错误码。
+- `StoryArchiveService.request_start(id)`：仅允许已登记 ID，原样委托启动端口。
+- `StoryLauncher.start_story(id) -> Result`：同步接受边界；失败无状态副作用，成功由
+  端口实现接管后续流程。当前默认 `STORY_START_UNAVAILABLE`；不代表已有可玩故事。
+- 目录错误或空目录可返回主菜单；未知美术 key 展示无图提示，不执行数据中的路径或脚本。
+
+
 ## 当前已实现 API
 
 所有路径相对 `game/`。GDScript 通过显式 preload 类型协作，外部 JSON 的 Variant 只在边界校验器中处理。

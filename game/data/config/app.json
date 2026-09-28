@@ -3,6 +3,7 @@
   "locale": "zh_CN",
   "content_path": "res://data/packs/bootstrap.json",
   "debug_panel": true,
+  "story_archive_placeholders": true,
   "input_bindings": {
     "move_left": "A", "move_right": "D", "move_up": "W", "move_down": "S",
     "interact": "E", "investigate": "Q", "debug_toggle": "F3"

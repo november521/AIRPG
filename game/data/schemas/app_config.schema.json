@@ -7,6 +7,7 @@
     "locale": {"type": "string", "enum": ["zh_CN"]},
     "content_path": {"type": "string", "pattern": "^res://data/packs/[a-z0-9_]+\\.json$"},
     "debug_panel": {"type": "boolean"},
+    "story_archive_placeholders": {"type": "boolean"},
     "input_bindings": {
       "type": "object", "additionalProperties": false,
       "required": ["move_left", "move_right", "move_up", "move_down", "interact", "investigate", "debug_toggle"],

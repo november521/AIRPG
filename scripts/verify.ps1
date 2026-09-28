@@ -20,10 +20,17 @@ function Invoke-GodotCheck([string]$Name, [string[]]$EngineArgs, [string]$Succes
   $exitCode = $LASTEXITCODE
   $output | Out-File -Encoding utf8 -LiteralPath (Join-Path $artifacts "$Name.log")
   $text = $output | Out-String
-  if ($exitCode -ne 0 -or $text -match '(?m)(SCRIPT ERROR:|ERROR:|WARNING:.*leaked|Parse Error)') {
+  if ($exitCode -ne 0 -or $text -match '(?m)(SCRIPT ERROR:|ERROR:|FAIL:|WARNING:.*leaked|Parse Error)') {
     throw "$Name failed (exit $exitCode):`n$text"
   }
   if ($SuccessMarker -and -not $text.Contains($SuccessMarker)) { throw "$Name did not reach its success marker.`n$text" }
+  if ($Name -eq 'tests') {
+    if ($text -notmatch 'AIRPG_TESTS: [1-9][0-9]* checks, 0 failures') { throw 'Aggregate did not finish with zero failures.' }
+    # Only the suites this branch registers; C1/I1/G1/INTEGRATION still live on their own branches.
+    foreach ($suite in @('BASE_TESTS', 'ARCHIVE_TESTS')) {
+      if ($text -notmatch "AIRPG_${suite}: [1-9][0-9]* checks") { throw "Missing or empty suite: $suite" }
+    }
+  }
   Write-Host "$Name passed."
   if ($Name -eq 'tests') { Write-Host $text.Trim() }
 }

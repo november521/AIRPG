@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://presentation/story_archive/art/story_art_library.gd" id="1"]
+[ext_resource type="Texture2D" path="res://presentation/story_archive/art/deadlight_road_v1.png" id="2"]
+
+[sub_resource type="Gradient" id="SlateColors"]
+colors = PackedColorArray(0.17, 0.23, 0.28, 1, 0.018, 0.024, 0.033, 1)
+[sub_resource type="GradientTexture2D" id="Slate"]
+gradient = SubResource("SlateColors")
+width = 512
+height = 512
+fill_to = Vector2(0.8, 1)
+[sub_resource type="Gradient" id="AmberColors"]
+colors = PackedColorArray(0.25, 0.18, 0.10, 1, 0.025, 0.021, 0.018, 1)
+[sub_resource type="GradientTexture2D" id="Amber"]
+gradient = SubResource("AmberColors")
+width = 512
+height = 512
+fill_to = Vector2(0.8, 1)
+[sub_resource type="Gradient" id="TealColors"]
+colors = PackedColorArray(0.10, 0.23, 0.22, 1, 0.016, 0.024, 0.025, 1)
+[sub_resource type="GradientTexture2D" id="Teal"]
+gradient = SubResource("TealColors")
+width = 512
+height = 512
+fill_to = Vector2(0.8, 1)
+
+[resource]
+script = ExtResource("1")
+textures = Dictionary[String, Texture2D]({
+"deadlight_road": ExtResource("2"),
+"placeholder_slate": SubResource("Slate"),
+"placeholder_amber": SubResource("Amber"),
+"placeholder_teal": SubResource("Teal")
+})

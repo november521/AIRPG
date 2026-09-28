@@ -7,6 +7,7 @@ const WORKSPACE = preload("res://presentation/shell/workspace.tscn")
 const MAIN = preload("res://bootstrap/main.tscn")
 ## Start-screen detection by script file keeps this harness free of the view's public surface.
 const START_SCRIPT = "start_screen.gd"
+const StoryArchive = preload("res://tests/story_archive/test_story_archive.gd")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -69,5 +70,9 @@ func _run() -> void:
 	isolated_host.queue_free()
 	main.queue_free()
 	await process_frame
+	print("AIRPG_BASE_TESTS: %d checks" % _checks)
+	var before: int = _checks
+	await StoryArchive.new().run(_check, self)
+	print("AIRPG_ARCHIVE_TESTS: %d checks" % (_checks - before))
 	print("AIRPG_TESTS: %d checks, %d failures" % [_checks, _failures.size()])
 	quit(0 if _failures.is_empty() else 1)

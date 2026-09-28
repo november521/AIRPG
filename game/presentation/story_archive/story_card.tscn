@@ -1,0 +1,67 @@
+[gd_scene load_steps=6 format=3]
+[ext_resource type="Script" path="res://presentation/story_archive/story_card.gd" id="1"]
+[ext_resource type="PackedScene" path="res://presentation/story_archive/components/story_title.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://presentation/story_archive/components/story_tags.tscn" id="3"]
+[sub_resource type="StyleBoxEmpty" id="Empty"]
+[sub_resource type="StyleBoxFlat" id="Outline"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.84, 0.70, 0.43, 0.8)
+[node name="StoryCard" type="Button"]
+custom_minimum_size = Vector2(360, 246)
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("Empty")
+theme_override_styles/hover = SubResource("Empty")
+theme_override_styles/pressed = SubResource("Empty")
+script = ExtResource("1")
+[node name="Shade" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.43, 0.36, 0.20, 0.13)
+modulate = Color(1, 1, 1, 0)
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 12
+mouse_filter = 2
+[node name="Cover" type="TextureRect" parent="Content"]
+custom_minimum_size = Vector2(0, 136)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+[node name="Placeholder" type="Label" parent="Content/Cover"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "archive.preview_tag"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.68, 0.67, 0.61, 1)
+mouse_filter = 2
+[node name="Title" parent="Content" instance=ExtResource("2")]
+theme_override_font_sizes/font_size = 28
+[node name="Tags" parent="Content" instance=ExtResource("3")]
+text_size = 18
+[node name="Marker" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Outline")
+modulate = Color(1, 1, 1, 0)
