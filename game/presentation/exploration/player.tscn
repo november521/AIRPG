@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://presentation/exploration/player.gd" id="1"]
+[sub_resource type="CapsuleShape3D" id="Capsule"]
+radius = 0.23
+height = 1.68
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1")
+floor_snap_length = 0.35
+floor_max_angle = 0.872665
+floor_constant_speed = true
+safe_margin = 0.002
+[node name="Collision" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.84, 0)
+shape = SubResource("Capsule")
+[node name="Camera" type="Camera3D" parent="."]
+position = Vector3(0, 1.53, 0)
+current = true
+fov = 75.0
+near = 0.05
+far = 120.0

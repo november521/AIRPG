@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://presentation/story_archive/art/story_art_library.gd" id="1"]
-[ext_resource type="Texture2D" path="res://presentation/story_archive/art/deadlight_road_v1.png" id="2"]
+[ext_resource type="Texture2D" path="res://presentation/story_archive/art/manor_preview.png" id="2"]
 
 [sub_resource type="Gradient" id="SlateColors"]
 colors = PackedColorArray(0.17, 0.23, 0.28, 1, 0.018, 0.024, 0.033, 1)
@@ -33,3 +33,4 @@ textures = Dictionary[String, Texture2D]({
 "placeholder_amber": SubResource("Amber"),
 "placeholder_teal": SubResource("Teal")
 })
+

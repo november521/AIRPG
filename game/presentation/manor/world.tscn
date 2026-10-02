@@ -1,0 +1,73 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="PackedScene" path="res://presentation/manor/manor.glb" id="1"]
+[ext_resource type="PackedScene" path="res://presentation/exploration/player.tscn" id="2"]
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0.67, 0.72, 0.76, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.88, 0.85, 0.77, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 0
+[node name="World" type="Node3D"]
+[node name="Model" parent="." instance=ExtResource("1")]
+[node name="Player" parent="." instance=ExtResource("2")]
+position = Vector3(-8.05, -0.39, -1.64)
+rotation = Vector3(0, -1.570796, 0)
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env")
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -28, 0)
+light_color = Color(1, 0.93, 0.80, 1)
+light_energy = 1.15
+shadow_enabled = true
+directional_shadow_max_distance = 40.0
+[node name="HallLight" type="OmniLight3D" parent="."]
+position = Vector3(-1.9, 2.35, -4.0)
+light_color = Color(1, 0.88, 0.70, 1)
+light_energy = 0.7
+omni_range = 7.0
+[node name="SideHallLight" type="OmniLight3D" parent="."]
+position = Vector3(-4.5, 2.35, -1.64)
+light_color = Color(1, 0.90, 0.76, 1)
+light_energy = 0.6
+omni_range = 5.0
+[node name="ReceptionLight" type="OmniLight3D" parent="."]
+position = Vector3(-4.6, 2.35, 4.2)
+light_color = Color(1, 0.88, 0.72, 1)
+light_energy = 0.65
+omni_range = 6.0
+[node name="KitchenLight" type="OmniLight3D" parent="."]
+position = Vector3(0.6, 2.35, 3.8)
+light_color = Color(1, 0.92, 0.80, 1)
+light_energy = 0.55
+omni_range = 5.0
+[node name="DoctorStudyLight" type="OmniLight3D" parent="."]
+position = Vector3(4.5, 2.35, -2.9)
+light_color = Color(1, 0.89, 0.73, 1)
+light_energy = 0.6
+omni_range = 6.0
+[node name="DoctorBedroomLight" type="OmniLight3D" parent="."]
+position = Vector3(3.1, 2.35, -9.3)
+light_color = Color(1, 0.90, 0.77, 1)
+light_energy = 0.55
+omni_range = 6.0
+[node name="EmiliaBedroomLight" type="OmniLight3D" parent="."]
+position = Vector3(-5.2, 2.35, -5.6)
+light_color = Color(1, 0.90, 0.77, 1)
+light_energy = 0.55
+omni_range = 5.0
+[node name="EmiliaStudyLight" type="OmniLight3D" parent="."]
+position = Vector3(-4.4, 2.35, -10.8)
+light_color = Color(1, 0.89, 0.74, 1)
+light_energy = 0.55
+omni_range = 5.0
+[node name="BathroomLight" type="OmniLight3D" parent="."]
+position = Vector3(-0.7, 2.35, -10.9)
+light_color = Color(1, 0.96, 0.89, 1)
+light_energy = 0.5
+omni_range = 4.0
+[node name="CellarLight" type="OmniLight3D" parent="."]
+position = Vector3(-3.8, -0.8, -10.8)
+light_color = Color(1, 0.83, 0.62, 1)
+light_energy = 0.8
+omni_range = 6.0

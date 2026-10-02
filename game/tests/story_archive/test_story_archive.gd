@@ -185,7 +185,13 @@ func _production(check: Callable, tree: SceneTree) -> void:
 	archive.get_node("%Enter").pressed.emit()
 	await tree.create_timer(0.8).timeout
 	check.call(main._services.session.read_state() == state_before, "ARCH: rejected launch does not mutate gameplay state")
-	check.call(host.get_child(0) == archive and not archive._busy, "ARCH: unimplemented production launch restores archive")
+	var manor: Node = host.get_child(0)
+	check.call(manor.name == "ManorStructureExperience", "ARCH: main launch enters integrated manor prototype")
+	check.call(host.mouse_filter == Control.MOUSE_FILTER_IGNORE, "ARCH: scene host passes mouse events to first person")
+	manor.route_requested.emit("story_archive")
+	await tree.process_frame
+	archive = host.get_child(0)
+	await tree.create_timer(0.6).timeout
 	archive.get_node("%Back").pressed.emit()
 	await tree.create_timer(0.3).timeout
 	var returned: Control = host.get_child(0)

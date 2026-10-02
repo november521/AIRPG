@@ -1,5 +1,17 @@
 # 契约与版本
 
+## 庄园原型接入（2026-10-02）
+
+ADR 0007 将独立庄园与角色原型接入主工程，未变更正式内容、故事状态或存档格式。
+`Composition.build(config_path, launcher = null)` 与 `StoryArchiveComposition.build(include_placeholders, launcher = null)`
+新增可选 StoryLauncher 注入；现有调用兼容，缺省仍返回 STORY_START_UNAVAILABLE。
+主启动入口注入 ManorPreviewLauncher，仅接受 deadlight，同步 Result 表示庄园路由已接管；开发占位故事仍在应用层拒绝。
+
+角色原型沿用 ADR 0006 的独立内存 v1，消费者为 CharacterService 与档案 UI，bootstrap 每次进入创建新实例。
+`read_character()` 返回深拷贝；使用/丢弃/演示命令必须携带 expected_revision，失败不变状态，回血与消耗原子提交。
+展示文本使用 dossier.*，避免与故事档案 archive.* 冲突；无新增 JSON 外部业务边界或存档迁移。
+WalkSession 只处理移动轴；UI 开启时输入适配器停止移动与转向，返回档案时释放鼠标。此接入不代表正式可玩故事。
+
 ## 故事档案 v1（2026-09-28）
 
 追加 ADR 0004：开发占位元数据由组装层附加 preview_only=true；

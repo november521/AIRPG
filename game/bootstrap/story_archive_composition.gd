@@ -5,7 +5,7 @@ const Service = preload("res://application/story_archive/story_archive_service.g
 const Launcher = preload("res://application/ports/story_launcher.gd")
 const ART_LIBRARY = preload("res://presentation/story_archive/art/story_art_library.tres")
 
-static func build(include_placeholders: bool = false) -> Dictionary:
+static func build(include_placeholders: bool = false, launcher: Launcher = null) -> Dictionary:
 	var raw := JsonFile.read("res://data/stories/catalog.json")
 	var schema := JsonFile.read("res://data/schemas/story_catalog.schema.json")
 	var messages := JsonFile.read("res://data/localization/zh_CN.json")
@@ -28,5 +28,5 @@ static func build(include_placeholders: bool = false) -> Dictionary:
 								entry["preview_only"] = true
 								entries.append(entry)
 	# Explicit, export-safe resource allowlist; JSON cannot load scripts or arbitrary paths.
-	return {"service": Service.new(entries, Launcher.new(), error),
+	return {"service": Service.new(entries, launcher if launcher != null else Launcher.new(), error),
 		"art": ART_LIBRARY.textures.duplicate()}

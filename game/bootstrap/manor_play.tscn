@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://bootstrap/manor_play.gd" id="1"]
+[ext_resource type="PackedScene" path="res://presentation/manor/world.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://presentation/shell/walk_hud.tscn" id="3"]
+
+[node name="ManorStructureExperience" type="Node3D" unique_id=27893109]
+script = ExtResource("1")
+
+[node name="World" parent="." unique_id=1535103732 instance=ExtResource("2")]
+
+[node name="HUD" parent="." unique_id=1528167138 instance=ExtResource("3")]
+

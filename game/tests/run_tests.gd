@@ -8,6 +8,8 @@ const MAIN = preload("res://bootstrap/main.tscn")
 ## Start-screen detection by script file keeps this harness free of the view's public surface.
 const START_SCRIPT = "start_screen.gd"
 const StoryArchive = preload("res://tests/story_archive/test_story_archive.gd")
+const ManorTests = preload("res://tests/manor/test_manor.gd")
+const CharacterTests = preload("res://tests/manor/character_tests.gd")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -74,5 +76,9 @@ func _run() -> void:
 	var before: int = _checks
 	await StoryArchive.new().run(_check, self)
 	print("AIRPG_ARCHIVE_TESTS: %d checks" % (_checks - before))
+	before = _checks
+	await ManorTests.new().run(_check, self)
+	print("AIRPG_MANOR_TESTS: %d checks" % (_checks - before))
+	CharacterTests.new().run(_check)
 	print("AIRPG_TESTS: %d checks, %d failures" % [_checks, _failures.size()])
 	quit(0 if _failures.is_empty() else 1)
