@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://items/models/doctor_diary.glb" id="1_model"]
+
+[node name="DoctorDiaryHeld" type="Node3D"]
+transform = Transform3D(0.9511, 0, 0.309, -0.2939, 0.309, 0.9045, -0.0955, -0.9511, 0.2939, 0.13, -0.2, -0.58)
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.004, -0.0234, 0.0003)

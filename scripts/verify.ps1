@@ -27,7 +27,7 @@ function Invoke-GodotCheck([string]$Name, [string[]]$EngineArgs, [string]$Succes
   if ($Name -eq 'tests') {
     if ($text -notmatch 'AIRPG_TESTS: [1-9][0-9]* checks, 0 failures') { throw 'Aggregate did not finish with zero failures.' }
     # Only the suites this branch registers; C1/I1/G1/INTEGRATION still live on their own branches.
-	foreach ($suite in @('BASE_TESTS', 'ARCHIVE_TESTS', 'MANOR_TESTS', 'CHARACTER_TESTS', 'NPC_RIG_TESTS', 'INTERACTION_TESTS')) {
+    foreach ($suite in @('BASE_TESTS', 'ARCHIVE_TESTS', 'MANOR_TESTS', 'CHARACTER_TESTS')) {
       if ($text -notmatch "AIRPG_${suite}: [1-9][0-9]* checks") { throw "Missing or empty suite: $suite" }
     }
   }

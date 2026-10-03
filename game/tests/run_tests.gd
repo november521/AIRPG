@@ -11,6 +11,7 @@ const StoryArchive = preload("res://tests/story_archive/test_story_archive.gd")
 const ManorTests = preload("res://tests/manor/test_manor.gd")
 const NpcRigTests = preload("res://tests/manor/npc_animation_tests.gd")
 const CharacterTests = preload("res://tests/manor/character_tests.gd")
+const CreationTests = preload("res://tests/manor/creation_tests.gd")
 const InteractionTests = preload("res://tests/interactions/test_interactions.gd")
 const InteractionSceneTests = preload("res://tests/interactions/test_scene_interactions.gd")
 
@@ -86,6 +87,9 @@ func _run() -> void:
 	await NpcRigTests.new().run(_check, self)
 	print("AIRPG_NPC_RIG_TESTS: %d checks" % (_checks - before))
 	CharacterTests.new().run(_check)
+	before = _checks
+	CreationTests.new().run(_check, self)
+	print("AIRPG_CREATION_TESTS: %d checks" % (_checks - before))
 	before = _checks
 	InteractionTests.new().run(_check)
 	await InteractionSceneTests.new().run(_check, self)

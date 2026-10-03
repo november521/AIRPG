@@ -1,14 +1,83 @@
 # 接续记录
 
-## 死光 UI 合并 PR：轻量 HUD + 调查员手记（2026-10-03）
+## 庄园道具接入：十二件物品、发电设备与角色创建（2026-10-03）
 
-用户要求把本地已完成的《死光》UI 工作适配到最新主仓库，并提取一个合并 PR：一是 `D:\AIRPG\AIRPG` 中未提交的探索 HUD 与 E 键手记实现（基于 921556a），二是评审稿提交 `455fe93`（`docs/ui-design/`），三是同一目录随后完成的开始界面封面改版（见下一节记录；该节由封面工作本身撰写，其中的验证数字属于其自身基线）。工作包 U-DEADLIGHT-UI / 负责人本任务 / 独立对抗复核待分配；分支 `feature/deadlight-ui`，基线 `88c9ef0`。
+用户陆续给出多个 Sketchfab GLB，要求按既有架构放进庄园。范围限 `game/items/**`、
+`game/bootstrap/{character_preview,manor_interactions}.gd`、`game/presentation/manor/generator.*`、
+`game/presentation/character/{creation_view,creation_number_row,notebook_character_page}.*`、
+本地化与测试；**未改引擎版本、存档格式或共享契约**——物品沿用既有 `items/` 框架的
+`item_data.gd` 契约，设备沿用既有 `Handler` 扩展点，角色创建沿用既有 `character_service.gd` 用例。
 
-适配取舍：`character_hud.gd` 以新手记版式为准，同时保留 main 的物品系统能力——`item_dropped` 信号、拿在手上/收回/使用手持物品，以及「丢弃一个」走 `drop_item` 并在成功后发出稳定 ID（保持丢弃生成世界物品的闭环）；旧档案页的演示预览按钮随旧版式移除，service 层 `preview_action` 保留。`walk_hud.gd` 以房间式 HUD 为准并补回 main 需要的 `show_ui_state()`，`walk_hud.tscn` 新增 `Status` 标签承载交谈/手记状态。两侧本地化键与 handoff 记录全部保留，`walk.help`/`walk.note` 合并为同时描述 F 交互与 E 手记。为满足单脚本 300 行约定，手记版式构建拆到新文件 `presentation/character/notebook_view.gd`（224 行），`character_hud.gd` 由 354 行降至 163 行。
+十二件物品各有 `items/data/<id>.tres`（定义）、`items/world/<id>_world.tscn`（地面实例：
+`Model` + 射线用 `Target`(StaticBody3D, layer 8) + `Name`(Label3D)）、`items/held/<id>_held.tscn`
+（手持）与 `items/models/<id>.glb`；经 `character_preview.gd` 的 `_item_definition()` 注册定义、
+`manor_interactions.gd` 的 `_place_item()` 放置。来源与落地位置：
 
-验证：架构检查通过（128 个源/场景文件），3 项架构负向用例通过；Godot 导入、`res://tests/run_tests.gd` 聚合 354 项检查 0 失败（BASE 95 / ARCHIVE 62 / MANOR 93 / CHARACTER 38 / NPC_RIG 12 / INTERACTION 54）、启动标记 `AIRPG_BOOT_READY` 通过。本机只有 Windows PowerShell 5.1、未安装 PowerShell 7（`scripts/verify.ps1` 使用 `[IO.Path]::GetRelativePath`），统一 verify 无法原样执行，改用逻辑等价驱动：架构门禁为仓外逐字副本、仅改写该 PS7 调用，Godot 三步的退出码、错误正则与成功标记与 verify 一致；Windows 根证书库读取失败为本机既有环境问题（本文件已多次记录），仅在报告中显式豁免并计数，未放宽其他检查。
+| id | 中文 | 来源 / 作者 | 许可 | 落地位置 |
+| --- | --- | --- | --- | --- |
+| silver_urn | 骨灰盒 | Silver Chest / badams3D | CC-BY-4.0 | 走廊 (-4.3, 0.065, -0.8) |
+| doctor_diary | 医生日记 | PBR Dark Diary / Ferocious Industries | CC-BY-4.0 | 医生书房 (3.4, 0.0, -4.4) |
+| wallet | 钱包 | PG #2 Wallet / PlumCantaloupe | CC-BY-4.0 | 接待室 (-6.5, 0.0, 2.0) |
+| copper_wire_coil | 铜线圈 | Copper wire coil / famousandfaded | Sketchfab Standard（业主确认已获许可） | 地窖 (-4.7, -2.72, -10.0) |
+| electrical_tape | 绝缘带 | Blue Electrical Tape / GameDev Nick | CC-BY-4.0 | 地窖 (-4.0, -2.72, -12.0) |
+| lantern | 手提灯 | Old Lantern / Pixel Life | CC-BY-4.0 | 地窖 (-5.4, -2.72, -10.2) |
+| wrench | 扳手 | Old Wrench / MaX3Dd | CC-BY-4.0 | 院区 (-9.3, -0.46, -8.6) |
+| radio | 收音机 | Vintage radio / Loïc | CC-BY-4.0 | 接待室 (-7.8, -0.005, 3.2) |
+| crowbar | 撬棍 | Crowbar / badams3D | CC-BY-4.0 | 走廊 (-4.3, 0.24, 0.0)（替换原绿色方块占位） |
+| kerosene_bottle | 煤油罐 | Kerosene Bottle / FaizU | CC-BY-4.0 | 厨房 (0.5, 0.0, 2.0) |
+| manor_key | 钥匙 | key / yomans | CC-BY-4.0 | 医生书房 (5.2, 0.0, -4.4) |
+| fuse | 保险丝 | Fuse / AliA Animations | CC-BY-4.0 | 地窖 (-3.8, -2.48, -10.6) |
 
-未实现/待复核：手记线索与人物页仍为明确空态；未做真实键鼠与不同 DPI 人工走查、无导出包验证；独立对抗复核待分配。
+**十二件目前只有一条生命周期：拾取 → 进手记「随身物品」→ 装备到手上 → 放下。**
+没有任何一件带剧情推进、锁钥、容器、燃料、检定或消耗行为；`zh_CN.json` 的描述逐条写明
+「当前尚未接入 … 功能」，以免把未授权内容说成正式功能。可否丢弃以 `droppable` 区分：
+可丢 5 件（撬棍、扳手、煤油罐、手提灯、收音机），不可丢 7 件（其余，`protected = true`）。
+后续若要把它们接成一条「修复/启动设备」的线索，需要先取得授权内容再动。
+
+院区发电机组（`manor.device.generator`，静置 (-11.0, -0.427, -7.0)）是一个**本地启停状态机**：
+`domain/exploration/device_state.gd` 与既有 `door_state.gd` 同级，`application/.../device_interaction.gd`
+实现既有 `Handler` 接口，presentation 只做机身抖动与指示灯，**不接供电、不耗燃料、不做检定、
+无任何下游效果**。它用一个 `collision_layer = 9` 的实体盒同时充当挡路体积与射线目标。
+
+资产流水线新增两个脚本，都在 `scripts/assets/`：
+
+- `decimate_glb.py`（Blender，仅几何）：先 `remove_doubles` 焊接再 collapse 减面。
+  **焊接不可省**：Sketchfab 按 16 位索引上限 65532 顶点切块，join 后每条接缝都有一圈重复顶点，
+  collapse 跨不过接缝会直接把表面削没（骨灰盒 542967→10076 顶点，保险丝 169565→1865）。
+- `repack_glb.py`（纯 Python + Pillow，仅贴图与缩放）：把等比缩放烘焙进 POSITION 与 min/max、
+  按材质 `normalTexture` 识别法线贴图给不同分辨率、统一重编码 JPEG 并同步修正 `mimeType`。
+  它不碰临时文件，因此在受限 Windows 环境可用（Blender 的 glTF 导出器重编码贴图必经
+  `mkdtemp` 目录，而该目录在本机写不进去）。
+
+顺带修掉两件**接入时未减面**的资产：`fuse.glb` 126296 面 / 6.63 MiB → 3999 面 / 284 KiB；
+`manor_key.glb` 44878 面 / 1268 KiB → 3000 面 / 93 KiB。`game/items/models` 合计
+34.67 MiB → **27.17 MiB**，两者尺寸均未改变（18×18×90 mm、160×10×53 mm）。
+
+另修 `scripts/check_architecture.ps1`：本工作区此前的 `$allowed` 里**没有注册 `items` 层**，
+而 `items/` 代码已并入，导致架构门禁自合并起一直失败（满屏 `Unowned source: items/...` 与
+`Forbidden dependency: bootstrap/*.gd -> items/...`）。按上游 main 的版本补回
+`items = @('items','presentation','application','domain','shared')` 与 bootstrap 的 `'items'`，
+**不是放宽规则，是恢复与仓库一致**。
+
+验证：架构检查 **174 个源/场景文件通过 + 3 个负向用例**；`res://tests/run_tests.gd` 为
+**`AIRPG_TESTS: 518 checks, 0 failures`**（BASE 95 / ARCHIVE 68 / MANOR 93 / CHARACTER 110 /
+NPC_RIG 12 / CREATION 22 / INTERACTION 118）；`--quit-after 5` 含 `AIRPG_BOOT_READY` 且无脚本错误。
+另用几何探针逐件核对世界与手持场景的真实顶点范围（`get_aabb()` 对部分模型不可信，例如钱包报
+1.397×1.449×1.276 而真实顶点仅 1.034×0.434×0.720，一律遍历 `surface_get_arrays()` 实测）。
+一致性审计（12 件物品 × 定义/世界/手持/模型/两条本地化键/两处注册）**0 问题**，
+`.gd.uid` 与 `.import` 完整。实机 1280×720 OpenGL 截图确认落地、名牌、对焦提示与手持取景。
+
+未做：没有任何一件物品接入剧情、锁钥或检定（属未授权内容）；发电机没有下游效果；
+真实键鼠走查、不同 DPI、导出包与性能未验证；**独立对抗复核待分配**；本轮改动已提交到本地分支
+`feature/manor-props`，**未推送**（本机无 GitHub 凭据）。日志仍报本机既有的根证书读取失败。
+
+**给下一个 agent 的三个坑**：① `game/presentation/shell/manor_room_map.gd` 的房间区间与
+`manor.glb` 里 `MS_*_Boards` 网格范围**对不上**（如书房 z −5.84..0.0 vs −8.75..−2.92），
+放道具前必须取重叠区；② Godot 的 `Transform3D` 12 浮点构造是**行主序**（`x_axis=(xx,yx,zx)`），
+按列主序写会被静默转置——钱包曾因此飞到 y≈−88 完全不可见，而射线仍正常，极易误判成"模型没导入"；
+③ 主流程现在会先进入 `CreationView`，截图/探针脚本若直接实例化 `manor_play.tscn` 绕开主流程，
+**本地化不会自动加载**，`tr()` 会返回原始键名并连带把 HUD 的 `%` 格式化打出 `SCRIPT ERROR`，
+需手动 `Localization.install(JsonFile.read("res://data/localization/zh_CN.json").value, "zh_CN")`。
 
 ## 封面换成整幅雨夜庄园图（2026-10-03）
 
@@ -287,3 +356,11 @@ A1 已完成；下一步从最新 A1 提交分别建立 C1 灰盒、I1 对话 UI
 ## 手记版面可读性修订（2026-10-03）
 
 根据用户反馈放大了手记标题、页签、物品条目、类别、数量、描述和操作文字；左页内容从过大的内边距向外展开，同时将纸张页边线与正文重新对齐。上下内边距加大，避免标题和底部提示贴近纸边。右页物品速写卡片限定宽度、在书页内水平居中，右页正文两侧留白也更均衡。1280×720 的实际 Godot 渲染已复查；临时截图脚本未纳入工程。
+
+## 玩家填写车卡与人物数值页（2026-10-03）
+
+用户确认演示规则：六属性初始 50、共 60 点、单项 30–80；察觉/洞察/交涉共 6 点、单项 0–3。新增独立车卡页，故事档案选《死光》庄园原型后先进入车卡；姓名和职业必填、背景可选。直接键入与 ± 按钮共用应用用例，顶部实时显示剩余点数；确认要求点数全部分配，确认后本次会话锁定，再进入庄园。手记人物页从确认的角色视图显示姓名、职业、六属性、三技能与背景。重置操作有确认弹窗；失败不修改快照或 revision。
+
+新增 `domain/character/creation_rules.gd`、`creation_state.gd`，`application/character/character_creation_service.gd`，`presentation/character/creation_view.gd`、`creation_number_row.gd` 与场景，相关 `.gd.uid` 由 Godot 编辑器导入生成。契约与边界见 ADR 0008 / `docs/contracts.md`。原型 `CharacterState` v1 物品/生命/理智保持原状；车卡只在本次运行内存中，返回后重新进入会开启新车卡。属性到 d20 修正值的公式、职业技能范围、正式写盘存档仍待后续工作，不将车卡原值直接用于检定。
+
+验证：Godot `--headless --script res://tests/run_tests.gd` 为 303 checks / 0 failures；PowerShell 7 `scripts/check_architecture.ps1` 为 106 文件通过。测试覆盖预算、边界、失败回滚、深拷贝、revision、确认锁定、输入回填及档案→车卡→庄园数值传递。尚未做真实图形窗口的视觉核对或正式存档验收。

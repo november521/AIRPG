@@ -17,7 +17,6 @@
 | `application` | 面向 UI 的用例、编排、外部端口 | application、domain、shared |
 | `infrastructure` | 文件、输入、翻译、随机源、模型与存储适配器 | infrastructure、application、domain、shared |
 | `presentation` | 场景、UI、动画、路由 | presentation、application、shared |
-| `items` | ItemData 资源、WorldItem 与手持表现 | items、presentation、application、domain、shared |
 | `bootstrap` | 生命周期、依赖组装、启动检查 | 所有生产层 |
 | `data` | 配置、本地化、内容及版本化 Schema | 无代码依赖 |
 | `tests` | 行为与集成验证 | 所有层 |
@@ -42,11 +41,6 @@ UI 使用容器、锚点和 1920×1080 缩放基准。键位在 JSON 中映射�
 完整开发者面板未来经专用只读诊断接口扩展；不要把整个模型客户端或状态对象绑定给 UI。
 
 ## 3. 状态权威与一致性
-
-庄园预设交互由作用域内 InteractionService 和显式注入的类型处理器承担，玩家不按种类分支。
-物理探测与门净空位于 infrastructure，提示和场景节点只投影应用用例状态。
-领取回执与背包位于同一原型 CharacterState v2 原子候选；世界拾取可用性从回执投影，不维护第二份可写布尔状态。
-此事务不扩展正式故事 StateStore 或磁盘存档；异步/跨剧情交互需独立协议。详见 ADR 0008 与 interactions.md。
 
 内容定义是静态数据，会话状态是动态数据，渲染状态属于 UI，三者独立。
 当前状态仅包含版本号与预声明的布尔标记。`StateStore.commit(expected_revision, changes)` 完整验证后一次替换状态，并增加版本号。

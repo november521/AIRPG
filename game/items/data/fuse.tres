@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://items/resources/item_data.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://items/world/fuse_world.tscn" id="2_world"]
+[ext_resource type="PackedScene" path="res://items/held/fuse_held.tscn" id="3_held"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"fuse"
+display_name_key = "item.fuse"
+description_key = "item.fuse.desc"
+world_scene = ExtResource("2_world")
+held_scene = ExtResource("3_held")
+stackable = false
+max_stack = 1
+equippable = true
+droppable = false
+weight = 0.15
+tags = [&"key", &"quest_item", &"electrical_part"]
