@@ -25,8 +25,18 @@ const PRESENT_RANGE: float = 8.0
 
 var _use_case: RefCounted = null
 var _gateway: RefCounted = null
+var _profiles: Dictionary = {}
+var _open_speaker: String = ""
 
+## Thin logging wrapper: a launcher log must say whether NPC dialogue reached the model or fell
+## back to the fixed greeting, and why. No prompt, reply or credential value is printed.
 static func build(host: Node, runtime: Object, roster: Array[Dictionary], actors: Array,
+		player: Node3D, anchors: Dictionary) -> RefCounted:
+	var built := _build(host, runtime, roster, actors, player, anchors)
+	print("AIRPG_NPC_AI: ", "ready" if built.ok else built.code)
+	return built
+
+static func _build(host: Node, runtime: Object, roster: Array[Dictionary], actors: Array,
 		player: Node3D, anchors: Dictionary) -> RefCounted:
 	if host == null or runtime == null or not runtime.has_method("create_transport"):
 		return Result.failure("AI_NOT_CONFIGURED")
@@ -62,6 +72,7 @@ static func build(host: Node, runtime: Object, roster: Array[Dictionary], actors
 	var instance := new()
 	instance._use_case = created.value
 	instance._gateway = gateway
+	instance._profiles = bundle.speakers
 	return Result.success(instance)
 
 ## Live scene observation for one speaker: what the NPC perceives right now, never knowledge.
@@ -88,17 +99,29 @@ func use_case() -> RefCounted:
 	return _use_case
 
 ## The room the conversation happens in scopes which memory fragments the NPC may recall, so
-## she never reports a room she has not been in during this exchange.
-func begin(speaker_id: String, listener: Node3D = null) -> RefCounted:
+## she never reports a room she has not been in during this exchange. The optional view is
+## re-anchored to the new speaker, so one NPC's reply never sits under the other's name.
+func begin(speaker_id: String, listener: Node3D = null, view: Object = null) -> RefCounted:
 	var room_id: String = RoomMap.room_id(listener.position) if listener != null else ""
 	var topic: String = "manor.room." + room_id
 	if room_id.is_empty() or not Ids.is_valid_id(topic):
 		topic = FALLBACK_TOPIC
-	return _use_case.begin_exchange(speaker_id, SCENE_ID, topic)
+	var begun: RefCounted = _use_case.begin_exchange(speaker_id, SCENE_ID, topic)
+	if not begun.ok:
+		print("AIRPG_NPC_DIALOGUE_REJECTED: ", speaker_id, " ", begun.code)
+		return begun
+	if view != null and view.has_method("begin_conversation") and _profiles.has(speaker_id):
+		view.begin_conversation(_profiles[speaker_id].name_key, _profiles[speaker_id].portrait_id)
+	_open_speaker = speaker_id
+	print("AIRPG_NPC_DIALOGUE_OPEN: ", speaker_id, " @ ", topic)
+	return begun
 
 func end() -> void:
 	if _use_case != null:
 		_use_case.end_exchange()
+	if not _open_speaker.is_empty():
+		print("AIRPG_NPC_DIALOGUE_CLOSE: ", _open_speaker)
+		_open_speaker = ""
 
 func release() -> void:
 	if _use_case != null:

@@ -38,6 +38,44 @@ func run(check: Callable) -> void:
 	_output_policy(check, cards)
 	_persona_requests(check, bundle, entries)
 	_end_to_end(check, bundle)
+	_conversation_memory(check, bundle)
+
+## Two NPCs in one scene must never share a conversation: memory is owned per speaker id.
+func _conversation_memory(check: Callable, bundle: Dictionary) -> void:
+	if bundle.is_empty():
+		return
+	var transport: RefCounted = FakeTransport.new()
+	var builder: RefCounted = Builder.create(bundle.system_prompt, bundle.fact_texts, bundle.personas)
+	var gateway: RefCounted = Gateway.new(transport, builder.value)
+	var state: RefCounted = StateStore.new()
+	state.configure(bundle.gate_flags)
+	var catalog: RefCounted = Actions.create([{"command_id": "npc.stay",
+		"parameter_schema": {"type": "object", "additionalProperties": false, "properties": {}}}])
+	var created: RefCounted = UseCase.create({"session_id": "manor.session", "state_store": state,
+		"provider": gateway, "context_source": ContextSource.new(), "facts": bundle.facts,
+		"action_catalog": catalog.value, "speakers": bundle.speakers,
+		"reply_policies": bundle.policies})
+	check.call(created.ok, "NPC memory: use case builds for the memory checks")
+	if not created.ok:
+		return
+	var use_case: RefCounted = created.value
+	use_case.begin_exchange("emilia", "manor", "manor.room.doctor_study")
+	use_case.submit_text("memory.1", "你爷爷呢？")
+	transport.finish("memory.1", _envelope("……爷爷他还在里面。", "emilia", []))
+	use_case.end_exchange()
+	use_case.begin_exchange("emilia", "manor", "manor.room.doctor_study")
+	use_case.submit_text("memory.2", "再说一次。")
+	var emilia_body: String = transport.accepted["memory.2"].messages[1].content
+	check.call(emilia_body.contains("爷爷他还在里面") and emilia_body.contains("你爷爷呢？"),
+		"NPC memory: Emilia is reminded of her own exchange with the player")
+	use_case.end_exchange()
+	use_case.begin_exchange("mary", "manor", "manor.room.reception")
+	use_case.submit_text("memory.3", "你认识她吗？")
+	var mary_body: String = transport.accepted["memory.3"].messages[1].content
+	check.call(not mary_body.contains("爷爷他还在里面") and not mary_body.contains("你爷爷呢？"),
+		"NPC memory: Mary never receives Emilia's conversation")
+	use_case.release()
+	gateway.release()
 
 func _cards(check: Callable) -> Array:
 	var raw: RefCounted = JsonFile.read(CARDS_PATH)

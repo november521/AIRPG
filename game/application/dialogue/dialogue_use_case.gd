@@ -18,6 +18,7 @@ const Registry = preload("res://application/dialogue/dialogue_request_registry.g
 const Publication = preload("res://application/dialogue/dialogue_publication.gd")
 const ActionContract = preload("res://application/contracts/npc_action_contract.gd")
 const Configuration = preload("res://application/dialogue/dialogue_configuration.gd")
+const Memory = preload("res://application/dialogue/dialogue_memory.gd")
 
 signal view_event(event: Dictionary)
 signal action_proposed(proposal: Dictionary)
@@ -47,6 +48,8 @@ var _scene_id: String = ""
 var _topic_id: String = ""
 var _trusted_ids: Dictionary = {}
 var _last_options: Dictionary = {}
+## Per-speaker short-term memory: each NPC only ever sees its own exchange with the player.
+var _memory: RefCounted = Memory.new()
 var _released: bool = false
 
 static func create(config: Variant) -> RefCounted:
@@ -140,6 +143,7 @@ func release() -> void:
 	_registry.reset()
 	_trusted_ids.clear()
 	_last_options.clear()
+	_memory.forget_all()
 	_provider = null
 	_state_store = null
 	_context_source = null
@@ -162,6 +166,11 @@ func _start(request_id: String, player_text: String) -> RefCounted:
 		_registry.fail(request_id, CODE_CONTEXT_UNAVAILABLE)
 		return Result.failure(CODE_CONTEXT_UNAVAILABLE, [gathered.code])
 	var context_input: Dictionary = gathered.value.duplicate(true)
+	# Recent lines for this speaker only. An empty memory leaves whatever the injected context
+	# source supplied, so the port still decides the default.
+	var remembered: Array[Dictionary] = _memory.recent(_speaker_id)
+	if not remembered.is_empty():
+		context_input["recent_dialogue"] = remembered
 	context_input["speaker_id"] = _speaker_id
 	context_input["scene_id"] = _scene_id
 	context_input["topic_id"] = _topic_id
@@ -184,6 +193,7 @@ func _start(request_id: String, player_text: String) -> RefCounted:
 		_registry.fail(request_id, started.code)
 		_trusted_ids.erase(request_id)
 		return Result.failure(CODE_PROVIDER_REJECTED, [started.code])
+	_memory.remember(_speaker_id, Memory.PLAYER_SPEAKER_ID, player_text)
 	# A synchronous terminal callback may already have closed the request and published its
 	# final event. Do not append a stale waiting event after that terminal result.
 	if not _registry.is_active(request_id):
@@ -246,6 +256,7 @@ func _on_completed(request_id: String, response: Dictionary) -> void:
 		_last_options[option.option_id] = option.text
 	if not proposal.is_empty():
 		action_proposed.emit(proposal.duplicate(true))
+	_memory.remember(binding.speaker_id, binding.speaker_id, reply.reply_text)
 	_emit(event.value)
 
 func _on_failed(request_id: String, code: String) -> void:

@@ -67,6 +67,16 @@ func append_entry(speaker: String, text: String) -> void:
 	_entries.add_child(entry)
 	_follow_tail()
 
+## Marks the start of a new conversation in the shared session transcript, so lines from two
+## different NPCs never read as one continuous exchange.
+func append_divider(text: String) -> void:
+	var caption := Label.new()
+	caption.add_theme_font_size_override("font_size", CAPTION_SIZE)
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption.text = text
+	_entries.add_child(caption)
+	_follow_tail()
+
 func clear_entries() -> void:
 	for child: Node in _entries.get_children():
 		_entries.remove_child(child)

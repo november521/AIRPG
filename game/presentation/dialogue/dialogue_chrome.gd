@@ -1,6 +1,7 @@
 extends RefCounted
-## Presentation chrome: maps view state to controls and localized labels.
-## Owns no request tracking, application references or model access.
+## Presentation chrome: maps view state to controls and localized labels, and owns the
+## speaker name/portrait registry. Owns no request tracking, application references or
+## model access.
 
 enum State { IDLE, WAITING, PRESENTING, FAILED, PAUSED, CANCELLED }
 
@@ -14,6 +15,8 @@ var _history_button: Button
 var _skip_button: Button
 var _retry_button: Button
 var _back_button: Button
+var _portraits: Dictionary = {}
+var _logged_state: int = -1
 
 func bind(nodes: Dictionary) -> void:
 	_portrait = nodes.get("portrait")
@@ -42,7 +45,9 @@ func render(state: int, error_code: String, can_retry: bool, notice: String) -> 
 	_submit_button.disabled = not idle
 	_skip_button.visible = state == State.PRESENTING
 	_retry_button.visible = can_retry
-	_back_button.visible = state in [State.FAILED, State.PAUSED, State.CANCELLED]
+	# Leaving the conversation must always be one visible click away: while a request waits or a
+	# reply plays there is otherwise no on-screen exit and the view reads as frozen.
+	_back_button.visible = true
 	var text := ""
 	var show := true
 	if state == State.WAITING or state == State.PRESENTING:
@@ -59,6 +64,10 @@ func render(state: int, error_code: String, can_retry: bool, notice: String) -> 
 		show = false
 	_status_label.visible = show
 	_status_label.text = text
+	if state != _logged_state:
+		_logged_state = state
+		# Secret-free trace: a conversation that never leaves "waiting" is visible in the log.
+		print("AIRPG_DIALOGUE_STATE: ", _state_name(state), " ", error_code)
 
 func set_speaker(name_text: String) -> void:
 	_name_label.text = name_text
@@ -67,6 +76,35 @@ func set_portrait(texture: Texture2D) -> void:
 	_portrait.texture = texture
 	_portrait.visible = texture != null
 	_portrait_fallback.visible = texture == null
+
+func show_portrait(portrait_id: String) -> void:
+	set_portrait(_portraits.get(portrait_id))
+
+func register_portrait(portrait_id: String, texture: Texture2D) -> void:
+	if portrait_id.is_empty():
+		return
+	if texture == null:
+		_portraits.erase(portrait_id)
+		return
+	_portraits[portrait_id] = texture
+
+## Localized speaker name for a localization key; falls back to the key when unlocalized.
+func resolve_name(name_key: String) -> String:
+	var localized := tr(name_key)
+	if not localized.is_empty() and localized != name_key:
+		return localized
+	var fallback := tr("dialogue.name.unknown")
+	return fallback if fallback != "dialogue.name.unknown" else name_key
+
+func _state_name(value: int) -> String:
+	match value:
+		State.IDLE: return "idle"
+		State.WAITING: return "waiting"
+		State.PRESENTING: return "presenting"
+		State.FAILED: return "failed"
+		State.PAUSED: return "paused"
+		State.CANCELLED: return "cancelled"
+		_: return "unknown"
 
 func _error_text(error_code: String) -> String:
 	var key := "dialogue.error." + error_code

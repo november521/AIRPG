@@ -29,7 +29,6 @@ var _rejected_events: int = 0
 var _request_counter: int = 0
 var _session_generation: int = 0
 var _playback_generation: int = 0
-var _portraits: Dictionary = {}
 var _pending_options: Array = []
 var _playback_request_id: String = ""
 
@@ -83,7 +82,7 @@ func release() -> void:
 		_playback.stop()
 	_disconnect_use_case()
 
-func _reset_session() -> void:
+func _reset_session(clear_history: bool = true) -> void:
 	_session_generation += 1
 	_playback_generation = 0
 	_released = false
@@ -102,9 +101,22 @@ func _reset_session() -> void:
 		return
 	_playback.clear()
 	_options.clear()
-	_history_panel.clear_entries()
+	if clear_history:
+		_history_panel.clear_entries()
 	_chrome.set_speaker("")
 	_chrome.set_portrait(null)
+
+## Starts a fresh conversation view for one speaker. Without this the reply, options and speaker
+## label of the previous NPC stay on screen and two separate conversations read as one.
+func begin_conversation(name_key: String, portrait_id: String = "") -> void:
+	if _released or not is_node_ready():
+		return
+	_reset_session(false)
+	var speaker := _chrome.resolve_name(name_key)
+	_chrome.set_speaker(speaker)
+	_chrome.show_portrait(portrait_id)
+	_history_panel.append_divider(tr("dialogue.history.divider") % speaker)
+	_render()
 
 func register_push(request_id: String) -> bool:
 	if request_id.is_empty() or request_id.length() > 128 or _closed_requests.has(request_id):
@@ -121,12 +133,7 @@ func get_visible_reply_length() -> int: return 0 if _playback == null else _play
 func is_playback_active() -> bool: return _playback != null and _playback.is_active()
 
 func register_portrait(portrait_id: String, texture: Texture2D) -> void:
-	if portrait_id.is_empty():
-		return
-	if texture == null:
-		_portraits.erase(portrait_id)
-		return
-	_portraits[portrait_id] = texture
+	_chrome.register_portrait(portrait_id, texture)
 
 func skip_playback() -> void:
 	if _playback != null:
@@ -184,9 +191,9 @@ func _apply_reply(value: Dictionary) -> void:
 		return
 	if _state == Chrome.State.PRESENTING and request_id == _active_request_id:
 		return
-	var speaker := _resolve_name(value.name_key)
+	var speaker := _chrome.resolve_name(value.name_key)
 	_chrome.set_speaker(speaker)
-	_chrome.set_portrait(_portraits.get(value.portrait_id))
+	_chrome.show_portrait(value.portrait_id)
 	_history_panel.append_entry(speaker, value.text)
 	_options.clear()
 	_pending_options = value.options.duplicate(true)
@@ -195,13 +202,6 @@ func _apply_reply(value: Dictionary) -> void:
 	_playback.start(value.text)
 	_set_state(Chrome.State.PRESENTING)
 	_render()
-
-func _resolve_name(name_key: String) -> String:
-	var localized := tr(name_key)
-	if not localized.is_empty() and localized != name_key:
-		return localized
-	var fallback := tr("dialogue.name.unknown")
-	return fallback if fallback != "dialogue.name.unknown" else name_key
 
 func _on_playback_finished() -> void:
 	if _playback_generation != _session_generation:

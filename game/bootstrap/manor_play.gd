@@ -228,7 +228,7 @@ func _open_greeting() -> void:
 	if reply.ok:
 		_candidate.set_greeting_target(player.global_position)
 		if npc_ai != null and is_instance_valid(dialogue_view) \
-				and npc_ai.begin(_candidate.npc_id, player).ok:
+				and npc_ai.begin(_candidate.npc_id, player, dialogue_view).ok:
 			npc_hud.dismiss()
 			dialogue_view.show()
 		else:

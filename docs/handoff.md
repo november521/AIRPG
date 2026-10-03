@@ -1,5 +1,38 @@
 # 接续记录
 
+## 对话卡住与“共用一个对话”（2026-10-04）
+
+用户反馈：对话经常卡住、两个 NPC 像共用一个对话，并要求查看游戏日志。工作包：对话可退出性与每角色会话隔离 /
+负责人本任务 / 独立对抗复核待分配；分支 `feature/held-inventory-item`，未推送。完整说明见
+[docs/dialogue-stuck-and-session-isolation.md](dialogue-stuck-and-session-isolation.md)。
+
+日志结论：本机实际日志在 `%APPDATA%\Godot\app_userdata\AIRPG\logs\`，最近 4 次启动只有 `AIRPG_BOOT_READY`
+与 `AIRPG_STRUCTURE_WALK_READY`——**此前 NPC 对话路径一条日志都不写**（`configure_ai` 失败只写内存字段），
+所以无法从旧日志复盘。另有一个关键事实：API Key 只存在于当前进程内存，每次启动都要在“设置”重新填写；
+未配置时按 F 得到的是固定问候框（无自由输入），容易被感受为“卡住”。
+
+修复：`dialogue_chrome.render` 之前只在 FAILED/PAUSED/CANCELLED 显示“返回”，等待期间输入被锁、鼠标已释放、
+移动被阻断却没有可见出口（请求最长等 60 秒）。现在“返回”在所有状态可见。新增
+`DialogueView.begin_conversation(name_key, portrait_id)`：换人时清空上一位的台词、选项与错误状态，
+立即写上当前 NPC 名牌与立绘，并在历史面板插入本地化分隔行；`ManorNpcAi.begin` 每次开始对话时调用它。
+新增 `application/dialogue/dialogue_memory.gd`：按 NPC 归属的近期记忆（默认最近 6 行、超长截断、重试不重复），
+`DialogueUseCase` 只注入当前说话人的记忆，因此艾米利亚的对话不会进入玛丽的上下文，玩家原话仍走 `untrusted`。
+仍需共用的部分：一个会话只有一个主要对话对象（PRD §9.5），历史面板仍是会话级总记录（现在有分隔行）。
+
+新增日志标记（不含密钥/提示词/模型原文）：`AIRPG_NPC_AI: ready|<code>`、`AIRPG_NPC_DIALOGUE_OPEN: <speaker> @ <topic>`、
+`AIRPG_NPC_DIALOGUE_REJECTED`、`AIRPG_NPC_DIALOGUE_CLOSE`、`AIRPG_DIALOGUE_STATE: <state> <error_code>`。
+测试日志里出现 `AIRPG_NPC_AI: AI_NOT_CONFIGURED` 属预期：它证明生产装配已成功加载并校验世界书与角色卡，
+只是没有配置 Key（`create_transport` 在内容校验之后）。
+
+验证：`& ./artifacts/verify_equivalent.ps1` 三步通过；架构 203 个源/场景文件 + 3 项负向用例；
+`AIRPG_TESTS: 1060 checks, 0 failures`（I1 246→254，NPC_AI 94→97）。新增覆盖：idle/waiting 状态“返回”可见、
+`begin_conversation` 清空上一位台词与选项并立即换名牌、历史出现会话分隔、艾米利亚的近期记忆回到她自己的下一次请求
+而玛丽的下一次请求不含她的任何一行。一次 Godot 测试进程再次卡死（本机既有现象），杀掉重跑即通过。
+
+未实现/待复核：关键记忆（结构化事件）、关系摘要、跨场景记忆、完整历史导出、对话中途存档；
+`recent_dialogue` 只覆盖最近 6 行。复核重点：换人时挂起请求取消是否彻底、分隔行在长会话中的可读性、
+60 秒等待期间的可取消体验、以及状态日志在正式构建中的噪声量。
+
 ## 庄园 NPC 接入角色卡与世界书（2026-10-03）
 
 用户交付 `死光_角色卡_艾米利亚与玛丽_AI接入版.md`（微信临时目录）与 `《死光》AIRPG世界书整理版.docx`

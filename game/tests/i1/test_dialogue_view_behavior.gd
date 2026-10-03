@@ -18,6 +18,7 @@ func run(check: Callable, host: Node) -> void:
 	await _paused_and_cancelled(check, host)
 	await _event_hygiene(check, host)
 	await _portraits_and_long_text(check, host)
+	await _conversation_boundary(check, host)
 	await _localization_and_history(check, host)
 	await _layout_sizes(check, host)
 
@@ -335,6 +336,33 @@ func _portraits_and_long_text(check: Callable, host: Node) -> void:
 	var option_button := _options(view).get_child(0) as Button
 	check.call(option_button.text.length() == Contract.MAX_OPTION_TEXT_LENGTH,
 		"max-length option text rendered")
+	await _free(ctx)
+
+## A conversation boundary must clear the previous NPC's reply/options/name and mark the
+## transcript, and leaving the dialogue must always be one visible click away.
+func _conversation_boundary(check: Callable, host: Node) -> void:
+	var ctx := await _make(host)
+	var view: DialogueView = ctx.view
+	var fake: FakeDialogue = ctx.fake
+	check.call(_button(view, "BackButton").visible, "idle dialogue offers a visible way out")
+	var input := _line_edit(view, "InputEdit")
+	input.text = "你好"
+	_button(view, "SubmitButton").pressed.emit()
+	check.call(_button(view, "BackButton").visible, "waiting dialogue offers a visible way out")
+	var request_id := view.get_active_request_id()
+	fake.publish(_reply(request_id, "第一句回答", [
+		{"option_id": "test.ask", "text": "询问"}]))
+	view.skip_playback()
+	check.call(_options(view).get_child_count() == 1, "options shown before the boundary")
+	view.begin_conversation("npc.other.name")
+	check.call(view.get_reply_text().is_empty(), "new conversation clears the previous reply")
+	check.call(_options(view).get_child_count() == 0, "new conversation clears the previous options")
+	var name_label := view.find_child("SpeakerName", true, false) as Label
+	check.call(name_label != null and name_label.text == "npc.other.name",
+		"new conversation names the new speaker before any reply")
+	check.call(view.get_state() == Chrome.State.IDLE, "new conversation starts idle")
+	check.call(_history(view).entry_count() == 3,
+		"transcript marks the conversation boundary instead of merging both speakers")
 	await _free(ctx)
 
 func _localization_and_history(check: Callable, host: Node) -> void:

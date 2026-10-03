@@ -165,6 +165,7 @@
   "npc.emilia.greeting": "……",
   "npc.mary.fallback": "……还有事吗。",
   "npc.emilia.fallback": "……",
+  "dialogue.history.divider": "—— 与%s的交谈 ——",
   "npc.talk_hint": "F · 与 %s 交谈",
   "npc.close": "结束交谈 · F / Esc",
   "npc.observation.talk": "玩家正站在你面前，主动与你交谈。",
