@@ -16,12 +16,19 @@ const CreationService = preload("res://application/character/character_creation_
 const CreationView = preload("res://presentation/character/creation_view.gd")
 const CREATION = preload("res://presentation/character/creation_view.tscn")
 const Result = preload("res://shared/result.gd")
+const Audio = preload("res://application/ports/audio_port.gd")
+const GodotAudio = preload("res://infrastructure/audio/godot_audio.gd")
+const GodotRandomSource = preload("res://infrastructure/random/godot_random_source.gd")
 
 var _services: Dictionary = {}
 var _router: Router
 var _active_view: Node
 var boot_ready: bool = false
 var _creation_service: CreationService
+## The shell's audio runtime: menu banks only, for the menus and the archive. The manor assembles its
+## own when it is entered, so a session's music and machine loops belong to the view that started
+## them and leave with it.
+var _audio: Audio
 
 func _ready() -> void:
 	var messages := JsonFile.read("res://data/localization/zh_CN.json")
@@ -37,6 +44,8 @@ func _ready() -> void:
 		_fail(boot.code)
 		return
 	_services = boot.value
+	# Players for the shell are parented here, so they live exactly as long as the application does.
+	_audio = GodotAudio.new(self, GodotRandomSource.new())
 	var input_ready := Keyboard.configure(_services.config.input_bindings)
 	if not input_ready.ok:
 		_fail(input_ready.code)
@@ -78,6 +87,8 @@ func _navigate(route_id: String) -> RefCounted:
 		view.configure(_services.session, _services.pack_id, _services.content_version,
 			_services.config.debug_panel and OS.is_debug_build())
 	view.route_requested.connect(_navigate)
+	if view is StartScreen or view is StoryArchive:
+		view.attach_audio(_audio)
 	if view is StartScreen:
 		view.quit_requested.connect(_quit_from_menu)
 		if resume_menu:

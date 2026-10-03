@@ -19,6 +19,11 @@ func configure() -> void:
 func active() -> bool:
 	return not _ui_blocked and DisplayServer.window_is_focused() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 
+## Read-only view of the UI block. Movement must be frozen by withholding movement, never by
+## blocking the UI: blocking also kills look-around and the interact key.
+func blocked() -> bool:
+	return _ui_blocked
+
 func movement() -> Vector2:
 	if not DisplayServer.window_is_focused():
 		release_pointer()

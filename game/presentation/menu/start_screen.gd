@@ -1,6 +1,7 @@
 extends Control
 ## Presentation owns animation only; bootstrap handles navigation and process exit.
 const Session = preload("res://application/session_service.gd")
+const Audio = preload("res://application/ports/audio_port.gd")
 const MenuEntry = preload("res://presentation/menu/menu_entry.gd")
 const DESIGN_SIZE := Vector2(1920.0, 1080.0)
 
@@ -16,6 +17,9 @@ signal quit_requested()
 var _reveal: Tween
 var _departure: Tween
 var _leaving: bool = false
+## The menu bank, which bootstrap attaches. It is deliberately not the manor's interface bank: the
+## main menu is synthetic and neutral and must never click like a door handle.
+var _audio: Audio = Audio.new()
 
 func _ready() -> void:
 	resized.connect(_fit_design)
@@ -36,6 +40,11 @@ func configure(_session: Session, _pack_id: String, _content_version: String,
 		_debug_enabled: bool) -> void:
 	pass
 
+## Injected by bootstrap. Two sounds live here: taking the menu's main action, and leaving.
+func attach_audio(port: Audio) -> void:
+	if port != null:
+		_audio = port
+
 func _fit_design() -> void:
 	var factor: float = minf(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
 	_design.scale = Vector2.ONE * factor
@@ -55,6 +64,7 @@ func _link_focus() -> void:
 		entry.focus_neighbor_right = NodePath(".")
 
 func _start_game() -> void:
+	_audio.play_ui(Audio.MENU_START)
 	_depart(route_requested.emit.bind("story_archive"), 0.25)
 
 func resume_from_archive() -> void:
@@ -68,6 +78,7 @@ func resume_from_archive() -> void:
 	_reveal.tween_property(_design, "modulate:a", 1.0, 0.25)
 
 func _quit_game() -> void:
+	_audio.play_ui(Audio.MENU_CLICK)
 	_depart(quit_requested.emit)
 
 func _depart(action: Callable, duration: float = 0.3) -> void:

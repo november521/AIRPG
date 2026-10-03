@@ -2,6 +2,7 @@ extends Control
 ## Read-only presentation of the character use case; item actions delegate to the service.
 const Service = preload("res://application/character/character_service.gd")
 const Result = preload("res://shared/result.gd")
+const Audio = preload("res://application/ports/audio_port.gd")
 const ItemRow = preload("res://presentation/character/notebook_item_row.gd")
 const View = preload("res://presentation/character/notebook_view.gd")
 signal panel_changed(open: bool)
@@ -34,8 +35,19 @@ var _discard: Button
 var _sketch: Control
 var _character_page: Control
 var _book_font: SystemFont
+## The notebook's own interface sounds. Silent until bootstrap attaches the port, and mute for the
+## closing call the HUD makes on its way into the tree: opening a notebook the player has not touched
+## must not click.
+var _audio: Audio = Audio.new()
+var _armed: bool = false
 func configure(service: Service) -> void:
 	_service = service
+
+## Injected by bootstrap.
+func attach_audio(port: Audio) -> void:
+	if port != null:
+		_audio = port
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -44,9 +56,12 @@ func _ready() -> void:
 	_service.changed.connect(_refresh)
 	_refresh()
 	set_open(false)
+	_armed = true
 func is_open() -> bool:
 	return _panel.visible
 func set_open(open: bool) -> void:
+	if _armed:
+		_audio.play_ui(Audio.UI_SWITCH)
 	_panel.visible = open
 	_dimmer.visible = open
 	_meter.visible = not open
@@ -123,6 +138,7 @@ func _refresh() -> void:
 	_character_page.refresh(view)
 func _choose_item(id: String) -> void:
 	_selected = id
+	_audio.play_ui(Audio.UI_CLICK)
 	_update_selection(_service.read_character())
 func _update_selection(view: Dictionary) -> void:
 	if _selected.is_empty():
@@ -158,9 +174,15 @@ func _use_held_item() -> void:
 func _discard_selected() -> void:
 	var dropped_item_id: String = _selected
 	var result: Result = _service.drop_item(dropped_item_id, _revision)
-	_show_result(result)
+	# The world's own "put down" is the sound of this action, so the notebook stays quiet and only
+	# says whether the command went through.
+	_show_result(result, true)
 	if result.ok:
 		item_dropped.emit(dropped_item_id)
-func _show_result(result: Result) -> void:
+## The notebook answers every command out loud: the affirmative sound for a commit, the negative one
+## for a refusal. `quiet` is for the one action whose sound happens in the world instead.
+func _show_result(result: Result, quiet: bool = false) -> void:
+	if not quiet:
+		_audio.play_ui(Audio.UI_CONFIRM if result.ok else Audio.UI_CANCEL)
 	_status.text = tr("hud.success") if result.ok else tr("error." + result.code)
 	_refresh()

@@ -1,8 +1,11 @@
 extends RefCounted
 ## Explicit scene bindings and prototype fixtures. No name-driven business discovery.
+## Doors, the greybox pickups and the assembly live here; the placement contract and the observed
+## objects live in manor_items, and the delivered props in manor_props.
 const Result = preload("res://shared/result.gd")
 const Service = preload("res://application/exploration/interaction_service.gd")
 const Inventory = preload("res://application/ports/pickup_inventory.gd")
+const Audio = preload("res://application/ports/audio_port.gd")
 const State = preload("res://domain/exploration/door_state.gd")
 const Door = preload("res://application/exploration/interactions/door_interaction.gd")
 const Pickup = preload("res://application/exploration/interactions/pickup_interaction.gd")
@@ -12,23 +15,11 @@ const ImportedDoorCollision = preload("res://infrastructure/exploration/imported
 const DoorView = preload("res://presentation/exploration/interactions/door_view.gd")
 const PickupView = preload("res://presentation/exploration/interactions/pickup_view.gd")
 const PICKUP = preload("res://presentation/exploration/interactions/pickup.tscn")
-const Crowbar = preload("res://items/data/crowbar.tres")
-const SilverUrn = preload("res://items/data/silver_urn.tres")
-const DoctorDiary = preload("res://items/data/doctor_diary.tres")
-const Wallet = preload("res://items/data/wallet.tres")
-const KeroseneBottle = preload("res://items/data/kerosene_bottle.tres")
-const ManorKey = preload("res://items/data/manor_key.tres")
-const Fuse = preload("res://items/data/fuse.tres")
-const CopperWireCoil = preload("res://items/data/copper_wire_coil.tres")
-const Wrench = preload("res://items/data/wrench.tres")
-const ElectricalTape = preload("res://items/data/electrical_tape.tres")
-const Lantern = preload("res://items/data/lantern.tres")
-const Radio = preload("res://items/data/radio.tres")
-const Generator = preload("res://presentation/manor/generator.tscn")
-const GeneratorView = preload("res://presentation/manor/generator.gd")
-const Device = preload("res://application/exploration/interactions/device_interaction.gd")
-const DeviceState = preload("res://domain/exploration/device_state.gd")
-const WorldItem = preload("res://items/world/world_item.gd")
+const Inspect = preload("res://application/exploration/interactions/inspect_interaction.gd")
+const InspectView = preload("res://presentation/manor/inspect_object_view.gd")
+const Items = preload("res://bootstrap/manor_items.gd")
+const Props = preload("res://bootstrap/manor_props.gd")
+const Caption = preload("res://presentation/manor/narrative_caption.gd")
 const REACH: float = 2.4
 const DOORS: Array[Dictionary] = [
 	{"id": "manor.door.side", "hinge": "MS_SideEntry_Hinge", "closed": -90.0, "name": "interaction.door.side"},
@@ -45,33 +36,13 @@ const DOORS: Array[Dictionary] = [
 const PICKUPS: Array[Dictionary] = [
 	{"id": "manor.pickup.hall_bandage", "item": "demo_bandage", "quantity": 2, "name": "item.bandage", "position": Vector3(-4.3, 0.24, -1.6)},
 	{"id": "manor.pickup.reception_lamp", "item": "demo_lamp", "quantity": 1, "name": "item.lamp", "position": Vector3(-4.3, 0.24, 1.6)},
-	{"id": "manor.pickup.cellar_token", "item": "demo_token", "quantity": 1, "name": "item.token", "position": Vector3(-2.9, -2.99, -9.5)},
+	# The greybox token used to stand at the cellar's centre, which is where the generator's case now
+	# is (its south face measures z -7.752). It moved in front of that face instead of being buried.
+	{"id": "manor.pickup.cellar_token", "item": "demo_token", "quantity": 1, "name": "item.token", "position": Vector3(-2.9, -2.99, -7.0)},
 ]
-const CROWBAR_POSITION := Vector3(-3.5, 0.24, -1.6)
-# Placements below are floor-contact: the world scene sits on its own base, so y is the walk
-# surface, not the box centre. The four cellar values are measured against the V4 walk mesh:
-# the cellar floor is flat at y = -3.23 and the V4 ramp descends through x -5.5..-4.5, so those
-# items are kept clear of the ramp band (x -6.10..-4.20) and would otherwise sit inside it.
-# The remaining values were measured on the PROTOTYPE manor and are still UNVERIFIED against V4;
-# see docs/handoff.md.
-const URN_POSITION := Vector3(-4.3, 0.065, -0.8)
-const DIARY_POSITION := Vector3(3.4, 0.0, -4.4)
-const WALLET_POSITION := Vector3(-6.5, 0.0, 2.0)
-const KEROSENE_BOTTLE_POSITION := Vector3(0.5, 0.0, 2.0)
-# Provisional discoverable placements; neither item has an authorized downstream use yet.
-const MANOR_KEY_POSITION := Vector3(5.2, 0.0, -4.4)
-const FUSE_POSITION := Vector3(-3.8, -3.23, -10.6)
-const COPPER_WIRE_COIL_POSITION := Vector3(-3.4, -3.23, -11.4)
-const ELECTRICAL_TAPE_POSITION := Vector3(-4.0, -3.23, -12.0)
-const LANTERN_POSITION := Vector3(-2.6, -3.23, -7.6)
-const WRENCH_POSITION := Vector3(-9.3, -0.46, -8.6)
-const RADIO_POSITION := Vector3(-7.8, -0.005, 3.2)
-# The generator is a 1.55 x 2.60 x 4.67 m industrial set and cannot fit the cellar, so it stands
-# on the yard slab. The mesh base sits 0.033 below its own origin, hence the 0.033 lift.
-const GENERATOR_POSITION := Vector3(-11.0, -0.427, -7.0)
-const GENERATOR_ID := "manor.device.generator"
 
-static func build(world: Node3D, camera: Camera3D, player: CollisionObject3D, inventory: Inventory) -> Result:
+static func build(world: Node3D, camera: Camera3D, player: CollisionObject3D, inventory: Inventory,
+		audio: Audio = null) -> Result:
 	var handlers: Dictionary = {}
 	var bindings: Dictionary = {}
 	var model: Node3D = world.get_node("Model")
@@ -87,8 +58,19 @@ static func build(world: Node3D, camera: Camera3D, player: CollisionObject3D, in
 	var collision_result: Result = ImportedDoorCollision.strip(model, leaves, handles)
 	if not collision_result.ok:
 		return collision_result
+	# The concealed cellar entrance is only interactive while the model still ships both halves of it.
+	if (model.find_child(Items.PRY_BOARDS, true, false) == null
+			or model.find_child(Items.PRY_BLOCKER, true, false) == null):
+		return Result.failure("MANOR_PRY_BINDING_MISSING")
+	Items.remove_baked(model, Items.LEAD_CASKET_GROUP, Items.LEAD_CASKET_MESHES)
+	Items.remove_baked(model, Items.DIARY_PROP, Items.DIARY_PROP_MESHES)
+	# The line the pried-up entrance tells and the props' own lines live on the same layer, so it is
+	# created here, before anything that may put a line on it, and handed to both.
+	var captions := Caption.new()
+	captions.name = Props.CAPTION_HOST_NAME
+	world.add_child(captions)
 	for spec: Dictionary in DOORS:
-		var bound: Dictionary = _door(model, spec, player)
+		var bound: Dictionary = _door(model, spec, player, audio)
 		handlers[spec.id] = bound.handler
 		bindings[bound.body] = spec.id
 		bindings[bound.target] = spec.id
@@ -99,28 +81,32 @@ static func build(world: Node3D, camera: Camera3D, player: CollisionObject3D, in
 		world.add_child(view)
 		view.position = spec.position
 		view.configure(handler, spec.name, spec.quantity)
+		view.attach_audio(audio)
 		handlers[spec.id] = handler
 		bindings[view.get_node("Target")] = spec.id
-	_place_item(world, Crowbar, "manor.pickup.crowbar", CROWBAR_POSITION, inventory, handlers, bindings)
-	_place_item(world, SilverUrn, "manor.pickup.silver_urn", URN_POSITION, inventory, handlers, bindings)
-	_place_item(world, DoctorDiary, "manor.pickup.doctor_diary", DIARY_POSITION, inventory, handlers, bindings)
-	_place_item(world, Wallet, "manor.pickup.wallet", WALLET_POSITION, inventory, handlers, bindings)
-	_place_item(world, KeroseneBottle, "manor.pickup.kerosene_bottle", KEROSENE_BOTTLE_POSITION, inventory, handlers, bindings)
-	_place_item(world, ManorKey, "manor.pickup.manor_key", MANOR_KEY_POSITION, inventory, handlers, bindings)
-	_place_item(world, Fuse, "manor.pickup.fuse", FUSE_POSITION, inventory, handlers, bindings)
-	_place_item(world, CopperWireCoil, "manor.pickup.copper_wire_coil", COPPER_WIRE_COIL_POSITION, inventory, handlers, bindings)
-	_place_item(world, ElectricalTape, "manor.pickup.electrical_tape", ELECTRICAL_TAPE_POSITION, inventory, handlers, bindings)
-	_place_item(world, Lantern, "manor.pickup.lantern", LANTERN_POSITION, inventory, handlers, bindings)
-	_place_item(world, Wrench, "manor.pickup.wrench", WRENCH_POSITION, inventory, handlers, bindings)
-	_place_item(world, Radio, "manor.pickup.radio", RADIO_POSITION, inventory, handlers, bindings)
-	var device := Device.new(DeviceState.new(false), "interaction.device.generator")
-	var generator: GeneratorView = Generator.instantiate()
-	generator.name = GENERATOR_ID.replace(".", "_")
-	world.add_child(generator)
-	generator.position = GENERATOR_POSITION
-	generator.configure(device)
-	handlers[GENERATOR_ID] = device
-	bindings[generator.get_node("Body")] = GENERATOR_ID
+	Items.place_inspect(world, Items.SilverUrn, Items.SILVER_BOX_ID, Items.SILVER_BOX_POSITION,
+		player, handlers, bindings, Items.SILVER_BOX_CAPTIONS, Inspect.DEFAULT_ACTION_KEYS, null, [], [],
+		Items.SILVER_BOX_VISUAL, audio)
+	var wallet: InspectView = Items.place_inspect(world, Items.Wallet, Items.WALLET_ID,
+		Items.WALLET_POSITION, player, handlers, bindings, Items.WALLET_CAPTIONS,
+		Items.WALLET_ACTION_KEYS, null, Items.WALLET_EMPTIED_ACTION_KEYS, [], Items.WALLET_VISUAL,
+		audio)
+	wallet.handler().enable_keep(inventory, Items.WALLET_ID, String(Items.PolaroidPhoto.id), 1)
+	# The diary is observed inside the locked cabinet and only becomes aimable once that is open, so
+	# the cabinet is placed last and gets the diary's own ray target to hand over.
+	var diary: InspectView = Items.place_inspect(world, Items.DoctorDiary, Items.DIARY_ID,
+		Items.DIARY_POSITION, player, handlers, bindings, Items.DIARY_CAPTIONS,
+		Items.DIARY_ACTION_KEYS, Items.diary_state(), Items.DIARY_EMPTIED_ACTION_KEYS,
+		Items.DIARY_EMPTIED_CAPTIONS, Items.DIARY_VISUAL, audio)
+	diary.handler().enable_keep(inventory, Items.DIARY_ID, String(Items.DoctorDiary.id), 1)
+	Items.place_cabinet(world, inventory, diary.get_node("Target") as CollisionObject3D, model, handlers,
+		bindings, audio)
+	# The boards over the new cellar stairwell. They ship with the model, so they are bound rather
+	# than placed: prying them is a state change, not a new object.
+	Items.place_pry_entrance(world, model, inventory, handlers, bindings, captions, audio)
+	# The eight pickups, the radio and the generator. The caption layer they share is the one this
+	# function already built, so a receipt can never find it missing.
+	Props.place_props(world, inventory, player, handlers, bindings, captions, audio)
 	var service := Service.new(Probe.new(camera, player, bindings, REACH), REACH)
 	for id: String in handlers:
 		var registration: Result = service.register_target(id, handlers[id])
@@ -128,25 +114,13 @@ static func build(world: Node3D, camera: Camera3D, player: CollisionObject3D, in
 			return registration
 	return Result.success(service)
 
-## One stable source id per placed instance; identity comes from ItemData, not the node name.
-static func _place_item(world: Node3D, item: Resource, source_id: String, position: Vector3,
-		inventory: Inventory, handlers: Dictionary, bindings: Dictionary) -> void:
-	var handler := Pickup.new(inventory, source_id, String(item.id), 1, item.display_name_key)
-	var node: WorldItem = item.world_scene.instantiate()
-	node.name = source_id.replace(".", "_")
-	world.add_child(node)
-	node.position = position
-	node.configure_data(item, handler, 1)
-	handlers[source_id] = handler
-	bindings[node.get_node("Target")] = source_id
-
 static func _leaf(hinge: Node3D) -> MeshInstance3D:
 	return hinge.find_child("*_SolidTimberLeaf", true, false) as MeshInstance3D
 
 static func _handle(hinge: Node3D) -> MeshInstance3D:
 	return hinge.find_child("*_BrassHandle", true, false) as MeshInstance3D
 
-static func _door(model: Node3D, spec: Dictionary, player: Node3D) -> Dictionary:
+static func _door(model: Node3D, spec: Dictionary, player: Node3D, audio: Audio) -> Dictionary:
 	var hinge: Node3D = model.find_child(spec.hinge, true, false)
 	var leaf: MeshInstance3D = _leaf(hinge)
 	# Delivered models disagree about the authored pose, so they declare it: V4-and-later carry the
@@ -204,6 +178,7 @@ static func _door(model: Node3D, spec: Dictionary, player: Node3D) -> Dictionary
 	var view := DoorView.new()
 	body.add_child(view)
 	view.configure(handler, body, closed_yaw)
+	view.attach_audio(audio)
 	return {"handler": handler, "body": body, "target": target}
 
 static func _open_yaw_for_player(body: AnimatableBody3D, shape: CollisionShape3D, player: Node3D,

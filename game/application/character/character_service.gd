@@ -36,6 +36,10 @@ func read_pickup(source_id: String) -> Dictionary:
 	var view: Dictionary = _state.snapshot()
 	return {"revision": view.revision, "claimed": view.pickup_receipts.has(source_id)}
 
+## Read-only side of the pickup port: a container asks what the player carries before it opens.
+func holds(item_id: String) -> bool:
+	return _state.snapshot().inventory.has(item_id)
+
 func claim_pickup(source_id: String, item_id: String, quantity: int, expected_revision: int) -> Result:
 	var candidate: Dictionary = _state.snapshot()
 	if candidate.revision != expected_revision:
