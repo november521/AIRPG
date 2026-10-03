@@ -65,11 +65,15 @@ story_archive_placeholders 默认为 false，发布构建忽略启用请求。
 | `ExplorationContract` | move(axis)、interact(target_id)、investigate()、candidate(...) | 只表达玩家意图和互动候选；不计算检定、不修改剧情状态 |
 | `DialogueViewContract` | status(...)、verified_reply(...)、player_text(...)、option_selection(...) | 玩家输入原样保留；只有 `verified_reply` 可作为模型台词进入 UI |
 | `ModelTransportContract` | request(id, filtered_context)、is_stable_error(code) | 上下文深拷贝；供应商错误不得越过稳定错误码边界 |
+| `ChatCompletionRequestBuilder` | 已隔离上下文 → system/user messages | 事实 key 必须解析为审核正文；权威与 untrusted 分区；请求 JSON 深拷贝 |
+| `ChatCompletionGateway` | filtered context → `ModelReply` | 缓存完整 content 后解析；非 stop、无效 JSON 与未知字段失败；不转发 raw delta |
+| `NpcActionContract` | proposal(session/request/revision/speaker/scene/action) | 只接受精确字段；禁止坐标；动作先经场景 sink 接受才发布回复 |
+| `ModelConfiguration` | configure(endpoint, model, key) / clear / diagnostics | HTTPS 与非空值校验；诊断不含 Key；本次运行内存配置，不做持久化 |
 
 Result 的公开属性是值协议，不是强不可变类型。领域状态和内容边界自行深拷贝；不能凭借 Result 自动获得隔离。
 当前基类端口返回 NOT_IMPLEMENTED；模型默认适配器返回 AI_NOT_CONFIGURED。不得忽略 ok 并继续当成功使用。
-请求字典的完整业务 DTO 仍在对话工作包冻结；A1 只确定传输信封、生命周期错误码和 UI 安全发布边界，
-不代表 AI 响应语义、知识隔离或状态提案已经实现。
+请求和响应业务 DTO 已由 F1 与集成工作包冻结为 v1；它只覆盖工程预览的知识投影、回复校验和语义动作提案，
+不代表自然语言语义已被证明安全，也不代表正式剧情、检定或状态提交已经实现。
 
 ## A1 并行接缝
 
@@ -99,7 +103,19 @@ Result 的公开属性是值协议，不是强不可变类型。领域状态和�
 - `REQUEST_STALE`
 
 每个被接受的请求必须恰有一个终止信号；取消幂等；重试使用新的 request ID。G1 只负责传输，不能选择 NPC
-知识、认可事实、结算规则或提交状态。完整响应 DTO、允许事实与动作提案由 F1/B1 会审后另行版本化。
+知识、认可事实、结算规则或提交状态。当前完整响应 DTO 与动作提案见下节；正式事实内容格式仍需 B/F 会审。
+
+### NPC 对话与语义动作 v1
+
+`DialogueUseCase` 的模型输入必须是经知识目录投影的 `filtered_context`；玩家文字、笔记、传闻、其他角色陈述
+保持在 `untrusted` 分区。`ChatCompletionGateway` 只在完整响应通过 `ModelReply` 结构解析后发出 completed，
+F1 再检查 speaker、used_fact_ids 和 `AllowedActions`。当前每个回复最多一个动作。
+
+动作目录只描述 command ID 与参数 Schema。生产接线允许 `npc.stay`、`npc.face_player` 和
+`npc.move_to_anchor({anchor_id})`；`NpcActionContract` 不允许任意位置字段。场景 sink 必须验证 session、scene、
+speaker、revision 与 NPC 专属锚点，再调用场景角色控制。动作拒绝视为整个回复失败，不能只显示台词而忽略动作。
+
+版本化 prompt 是受校验的数据资源，不是正式故事内容。当前庄园上下文、NPC 名称和锚点均明确标注为合成预览。
 
 ### 测试替身
 

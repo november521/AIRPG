@@ -13,3 +13,15 @@ static func build() -> Presence:
 			"color": Color(0.29, 0.23, 0.20)},
 	]
 	return Presence.new(RandomSource.new(), roster)
+
+static func action_anchors() -> Dictionary:
+	# Explicitly synthetic, scene-local anchor IDs. These coordinates never enter a model
+	# request; only the IDs are exposed through the allowed action schema.
+	return {
+		"preview_reception": {
+			"preview.anchor.conversation": Vector3(-4.9, 0.08, 2.9),
+		},
+		"preview_study": {
+			"preview.anchor.conversation": Vector3(3.8, 0.08, -2.5),
+		},
+	}

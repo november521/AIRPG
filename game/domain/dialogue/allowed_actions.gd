@@ -31,6 +31,15 @@ static func create(entries: Variant) -> RefCounted:
 func has(command_id: String) -> bool:
 	return _catalog.has(command_id)
 
+func describe() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	var command_ids: Array = _catalog.keys()
+	command_ids.sort()
+	for command_id: String in command_ids:
+		entries.append({"command_id": command_id,
+			"parameter_schema": _catalog[command_id].duplicate(true)})
+	return entries
+
 func validate(command_id: String, parameters: Variant) -> RefCounted:
 	if not _catalog.has(command_id):
 		return Result.failure("ACTION_NOT_ALLOWED", [command_id])

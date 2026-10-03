@@ -24,6 +24,10 @@ const ALLOWED_FIELDS: PackedStringArray = [
 	"include_usage", "parameters",
 ]
 const RESERVED_PARAMETERS: PackedStringArray = ["messages", "model", "stream", "stream_options"]
+const ALLOWED_PARAMETERS: PackedStringArray = [
+	"temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty",
+	"seed", "stop",
+]
 
 var endpoint_url: String = ""
 var model: String = ""
@@ -77,6 +81,10 @@ static func from_dictionary(raw: Variant) -> RefCounted:
 static func endpoint_parts(url: String) -> Dictionary:
 	if not url.begins_with("https://"):
 		return {}
+	for index: int in url.length():
+		var code := url.unicode_at(index)
+		if code < 32 or code == 127:
+			return {}
 	var remainder := url.substr(8)
 	var slash := remainder.find("/")
 	var authority := remainder if slash < 0 else remainder.substr(0, slash)
@@ -178,7 +186,8 @@ static func _read_parameters(source: Dictionary, issues: Array[String]) -> Dicti
 		issues.append("parameters must be an object")
 		return output
 	for key: Variant in raw:
-		if typeof(key) != TYPE_STRING or not _parameter_key_ok(key) or key in RESERVED_PARAMETERS:
+		if typeof(key) != TYPE_STRING or not _parameter_key_ok(key) \
+				or key in RESERVED_PARAMETERS or key not in ALLOWED_PARAMETERS:
 			issues.append("parameter key rejected")
 			continue
 		if not is_json_safe(raw[key], 4):

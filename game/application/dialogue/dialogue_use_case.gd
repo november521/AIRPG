@@ -16,11 +16,12 @@ const Projector = preload("res://domain/dialogue/knowledge_projector.gd")
 const ReplyValidator = preload("res://domain/dialogue/reply_validator.gd")
 const Registry = preload("res://application/dialogue/dialogue_request_registry.gd")
 const Publication = preload("res://application/dialogue/dialogue_publication.gd")
+const ActionContract = preload("res://application/contracts/npc_action_contract.gd")
+const Configuration = preload("res://application/dialogue/dialogue_configuration.gd")
 
 signal view_event(event: Dictionary)
+signal action_proposed(proposal: Dictionary)
 
-const CONFIG_KEYS: Array[String] = ["session_id", "state_store", "provider", "context_source",
-	"facts", "action_catalog", "speakers"]
 const CODE_INVALID_CONFIG: String = "DIALOGUE_CONFIG_INVALID"
 const CODE_NO_EXCHANGE: String = "DIALOGUE_EXCHANGE_NOT_OPENED"
 const CODE_UNKNOWN_SPEAKER: String = "DIALOGUE_UNKNOWN_SPEAKER"
@@ -38,6 +39,7 @@ var _facts: Array[Dictionary] = []
 var _known_ids: Array[String] = []
 var _action_catalog: Object = null
 var _speakers: Dictionary = {}
+var _action_sink: Object = null
 var _registry: Registry = null
 var _speaker_id: String = ""
 var _scene_id: String = ""
@@ -47,14 +49,12 @@ var _last_options: Dictionary = {}
 var _released: bool = false
 
 static func create(config: Variant) -> RefCounted:
-	if not _valid_config(config):
-		return Result.failure(CODE_INVALID_CONFIG)
+	var checked := Configuration.validate(config)
+	if not checked.ok:
+		return checked
 	var facts := Facts.validate_all(config.facts)
 	if not facts.ok:
 		return facts
-	var speakers := _validate_speakers(config.speakers)
-	if not speakers.ok:
-		return speakers
 	var registry := Registry.create(config.session_id)
 	if not registry.ok:
 		return registry
@@ -66,7 +66,8 @@ static func create(config: Variant) -> RefCounted:
 	instance._facts = facts.value
 	instance._known_ids = Facts.known_ids(facts.value)
 	instance._action_catalog = config.action_catalog
-	instance._speakers = speakers.value
+	instance._speakers = checked.value
+	instance._action_sink = config.get("action_sink")
 	instance._registry = registry.value
 	instance._provider.completed.connect(instance._on_completed)
 	instance._provider.failed.connect(instance._on_failed)
@@ -123,6 +124,11 @@ func cancel(request_id: String) -> bool:
 func release() -> void:
 	if _released:
 		return
+	# Cancel accepted network work before disconnecting callbacks so the underlying HTTP
+	# stream releases its response buffer and credentials instead of living until timeout.
+	for request_id: String in _registry.active_ids():
+		_registry.cancel(request_id)
+		_provider.cancel(request_id)
 	_released = true
 	if _provider != null and is_instance_valid(_provider):
 		if _provider.completed.is_connected(_on_completed):
@@ -136,6 +142,7 @@ func release() -> void:
 	_state_store = null
 	_context_source = null
 	_action_catalog = null
+	_action_sink = null
 
 func _start(request_id: String, player_text: String) -> RefCounted:
 	if _released or _speaker_id.is_empty():
@@ -166,11 +173,19 @@ func _start(request_id: String, player_text: String) -> RefCounted:
 	var trusted: Array[String] = []
 	for fact: Dictionary in projected.value.trusted_facts:
 		trusted.append(fact.fact_id)
+	projected.value["allowed_actions"] = _action_catalog.describe()
+	# A transport is allowed to complete synchronously from start(). Publish the trust
+	# binding first so that such a callback follows the same validation path.
+	_trusted_ids[request_id] = trusted
 	var started: RefCounted = _provider.start(request_id, projected.value)
 	if not started.ok:
 		_registry.fail(request_id, started.code)
+		_trusted_ids.erase(request_id)
 		return Result.failure(CODE_PROVIDER_REJECTED, [started.code])
-	_trusted_ids[request_id] = trusted
+	# A synchronous terminal callback may already have closed the request and published its
+	# final event. Do not append a stale waiting event after that terminal result.
+	if not _registry.is_active(request_id):
+		return Result.success()
 	return _emit_status(request_id, ViewContract.STATUS_WAITING)
 
 func _on_completed(request_id: String, response: Dictionary) -> void:
@@ -180,6 +195,7 @@ func _on_completed(request_id: String, response: Dictionary) -> void:
 	var authorized := _registry.authorize(request_id, int(snapshot.revision))
 	if not authorized.ok:
 		if authorized.code == Registry.CODE_STALE:
+			_trusted_ids.erase(request_id)
 			_emit_status(request_id, ViewContract.STATUS_FAILED, Transport.REQUEST_STALE, false)
 		return
 	var binding: Dictionary = authorized.value
@@ -190,21 +206,43 @@ func _on_completed(request_id: String, response: Dictionary) -> void:
 		_trusted_ids.erase(request_id)
 		_emit_status(request_id, ViewContract.STATUS_FAILED, _stable_error(validated.code), true)
 		return
-	var completed := _registry.complete(request_id)
-	if not completed.ok:
-		return
-	_trusted_ids.erase(request_id)
 	var reply: Dictionary = validated.value.data()
 	var profile: Dictionary = _speakers[binding.speaker_id]
 	var event := Publication.build(request_id, binding.speaker_id, profile.name_key,
 		profile.portrait_id, validated.value)
 	if not event.ok:
+		_registry.fail(request_id, event.code)
+		_trusted_ids.erase(request_id)
 		_last_options.clear()
 		_emit_status(request_id, ViewContract.STATUS_FAILED, Transport.MODEL_RESPONSE_INVALID, true)
 		return
+	var proposal: Dictionary = {}
+	if not reply.actions.is_empty():
+		var built_action := ActionContract.proposal(_session_id, request_id,
+			binding.expected_revision, binding.speaker_id, binding.scene_id, reply.actions[0])
+		if not built_action.ok:
+			_registry.fail(request_id, built_action.code)
+			_trusted_ids.erase(request_id)
+			_emit_status(request_id, ViewContract.STATUS_FAILED, Transport.MODEL_RESPONSE_INVALID, true)
+			return
+		proposal = built_action.value
+		if _action_sink != null:
+			var accepted: RefCounted = _action_sink.accept(proposal)
+			if not accepted.ok:
+				_registry.fail(request_id, accepted.code)
+				_trusted_ids.erase(request_id)
+				_emit_status(request_id, ViewContract.STATUS_FAILED,
+					Transport.MODEL_RESPONSE_INVALID, true)
+				return
+	var completed := _registry.complete(request_id)
+	if not completed.ok:
+		return
+	_trusted_ids.erase(request_id)
 	_last_options = {}
 	for option: Dictionary in reply.options:
 		_last_options[option.option_id] = option.text
+	if not proposal.is_empty():
+		action_proposed.emit(proposal.duplicate(true))
 	_emit(event.value)
 
 func _on_failed(request_id: String, code: String) -> void:
@@ -234,48 +272,6 @@ func _emit(event: Dictionary) -> void:
 	if not validated.ok:
 		return
 	view_event.emit(validated.value.duplicate(true))
-
-static func _valid_config(config: Variant) -> bool:
-	if not config is Dictionary or config.size() != CONFIG_KEYS.size():
-		return false
-	for key: String in CONFIG_KEYS:
-		if not config.has(key):
-			return false
-	for key: Variant in config:
-		if not key is String or key not in CONFIG_KEYS:
-			return false
-	if not config.session_id is String or not Ids.is_valid_id(config.session_id):
-		return false
-	if not config.state_store is Object or not config.state_store.has_method("snapshot"):
-		return false
-	if not config.provider is Object or not config.provider.has_signal("completed") \
-			or not config.provider.has_signal("failed") or not config.provider.has_method("start") \
-			or not config.provider.has_method("cancel"):
-		return false
-	if not config.context_source is Object or not config.context_source.has_method("gather"):
-		return false
-	if not config.action_catalog is Object or not config.action_catalog.has_method("validate"):
-		return false
-	return true
-
-static func _validate_speakers(speakers: Variant) -> RefCounted:
-	if not speakers is Dictionary or speakers.is_empty() or speakers.size() > 64:
-		return Result.failure(CODE_INVALID_CONFIG)
-	var copied: Dictionary = {}
-	for speaker_id: Variant in speakers:
-		if not speaker_id is String or not Ids.is_valid_id(speaker_id):
-			return Result.failure(CODE_INVALID_CONFIG)
-		var profile: Variant = speakers[speaker_id]
-		if not profile is Dictionary or profile.size() != 2 or not profile.has("name_key") \
-				or not profile.has("portrait_id"):
-			return Result.failure(CODE_INVALID_CONFIG)
-		if not profile.name_key is String or not Ids.is_valid_id(profile.name_key):
-			return Result.failure(CODE_INVALID_CONFIG)
-		if not profile.portrait_id is String or (not profile.portrait_id.is_empty() \
-				and not Ids.is_valid_id(profile.portrait_id)):
-			return Result.failure(CODE_INVALID_CONFIG)
-		copied[speaker_id] = {"name_key": profile.name_key, "portrait_id": profile.portrait_id}
-	return Result.success(copied)
 
 static func _stable_error(code: String) -> String:
 	if code in ["REPLY_SPEAKER_MISMATCH", "REPLY_UNKNOWN_FACT", "REPLY_FACT_NOT_ALLOWED"]:

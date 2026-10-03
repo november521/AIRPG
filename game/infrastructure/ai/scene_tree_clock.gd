@@ -11,7 +11,9 @@ func _init(tree: SceneTree = null) -> void:
 func schedule(delay_seconds: float, callback: Callable) -> Variant:
 	if _tree == null:
 		return null
-	var timer := _tree.create_timer(maxf(delay_seconds, 0.001))
+	# Network deadlines use elapsed time and must keep running while gameplay is paused
+	# or time-scaled. SceneTree itself owns the one-shot timer.
+	var timer := _tree.create_timer(maxf(delay_seconds, 0.001), true, false, true)
 	timer.timeout.connect(callback, CONNECT_ONE_SHOT)
 	_callbacks[timer] = callback
 	return timer

@@ -20,6 +20,9 @@ static func validate(data: Variant, expected_speaker_id: String, allowed_fact_id
 			return Result.failure("REPLY_UNKNOWN_FACT", [fact_id])
 		if fact_id not in allowed_fact_ids:
 			return Result.failure("REPLY_FACT_NOT_ALLOWED", [fact_id])
+	# The first NPC control slice is atomic for at most one semantic action.
+	if reply.actions.size() > 1:
+		return Result.failure("REPLY_ACTION_COUNT")
 	for action: Dictionary in reply.actions:
 		var parameters: RefCounted = action_catalog.validate(action.command_id, action.parameters)
 		if not parameters.ok:

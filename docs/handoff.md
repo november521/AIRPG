@@ -1,5 +1,37 @@
 # 接续记录
 
+## 输入 API 模式的 NPC AI 纵向切片（2026-10-03）
+
+用户选择在游戏内输入 API 配置并要求开始实现。工作包 AFGCI-NPC-AI / 负责人本任务 / 独立对抗复核待分配；
+分支 `codex/npc-ai-input-api`，managed worktree `C:/Users/31286/.codex/worktrees/npc-ai-input-api/AIRPG`，
+基线 e41553fb。主工作区已有用户改动，未写入、覆盖或暂存；本工作树整合 F1、G1、I1 已完成提交后完成纵向接线。
+
+实现：开始界面“设置”新增 API 地址、模型 ID、API Key 输入与断开入口；Key 提交后清空输入框，只保存在
+本次进程内的运行时凭据，不进入诊断/资源/存档/日志。`ChatCompletionRequestBuilder` 把 F1 过滤上下文编译为
+system/user messages，权威 fact key 在发送前解析为审核正文；`ChatCompletionGateway` 适配 G1 完成信封、缓存并
+解析严格 JSON，拒绝非 stop 结束且不把 raw delta 连接 UI。版本化 prompt 和 Schema 位于 `data/ai/`、
+`data/schemas/`。G1 同时修正 `HTTPClient.request_raw`、忽略暂停/时间缩放的超时、同步回调登记顺序、release 取消、
+endpoint 控制字符和生成参数白名单。
+
+NPC 动作：F1 每个回复最多接受一个动作；`NpcActionContract` 绑定 session/request/revision/speaker/scene，禁止坐标。
+庄园场景只接受 `npc.stay`、`npc.face_player`、`npc.move_to_anchor(anchor_id)`；`NpcActionDriver` 把该 NPC 的白名单
+锚点映射成 Vector3 后交给 `NpcActor`。陌生锚点、跨 NPC 锚点、额外字段、动作拒绝、取消和过期结果均不显示回复。
+移动到达/卡住由角色控制器处理，提示词禁止把移动意图说成已经抵达。对话输入聚焦时 F/E 不再误触游戏快捷键。
+
+范围边界：`preview_reception`、`preview_study`、观察文本、锚点和回复夹具均为合成工程预览，不是正式人物或剧情；
+未实现正式角色卡/知识包、自然语言语义证明、真实服务商调用、长期记忆、语音、路径规划、动作完成回调对话、
+额度/计费 UI、剧情/检定/物品提交或存档恢复。设置中的“已配置”只代表本地校验通过，首次对话才实际请求。
+
+验证：`./scripts/verify.ps1 -Godot D:/Godot/Godot_v4.7.2-stable_win64_console.exe` 原样通过；架构 195 文件与
+3 个负向用例通过，资源导入、启动标记均通过；聚合 `AIRPG_TESTS: 971 checks, 0 failures`，其中 G1 138、
+F1 174、NPC-AI 34、I1 246。NPC-AI 离线用例覆盖 Key 不进诊断、控制字符 URL、原始流隔离、截断响应、取消、事实正文解析、精确动作合同、
+错误类型、会话/场景/版本门槛、同步完成竞态、坐标注入、锚点白名单和完整回复/动作流水线。没有使用真实 Key 或网络请求。
+
+对抗复核重点：恶意玩家文本能否诱导模型泄露未投影事实；回复正文是否暗含未列 fact ID 的新增事实；供应商
+返回 JSON mode 差异、SSE 断流与限流行为；Key 在崩溃转储/系统内存中的威胁；NPC 卡住、玩家阻挡和场景退出时
+动作生命周期；正式内容接入时每个 NPC 的事实/锚点最小权限。完整决策和试玩说明见 ADR 0009 与
+`docs/npc-ai-input-api.md`。
+
 ## F1 对话安全边界（2026-09-26）
 
 分支 `feature/f1-dialogue-boundary`，worktree 在仓外独立目录，基线 `integration/slice-wiring@34ff473`。只新增 `game/domain/dialogue/`、`game/application/dialogue/`、`game/tests/f1/`，未改 Composition、公共契约/端口、G1 适配器、I1 视图、StateStore、Schema、本地化和测试聚合入口。

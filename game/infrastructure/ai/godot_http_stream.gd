@@ -62,7 +62,7 @@ func _process(_delta: float) -> void:
 	match _client.get_status():
 		HTTPClient.STATUS_CONNECTED:
 			if _state == State.CONNECTING:
-				var request_error := _client.request(HTTPClient.METHOD_POST, _path, _headers, _body)
+				var request_error := _client.request_raw(HTTPClient.METHOD_POST, _path, _headers, _body)
 				if request_error != OK:
 					_fail()
 					return

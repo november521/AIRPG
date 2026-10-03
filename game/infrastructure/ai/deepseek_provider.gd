@@ -25,7 +25,6 @@ const Usage = preload("res://infrastructure/ai/deepseek_usage.gd")
 const TerminatedLog = preload("res://infrastructure/ai/terminated_request_log.gd")
 
 const DONE_MARKER: String = "[DONE]"
-const TRANSPORT_SCHEMA_VERSION: int = 1
 const SYNC_REQUEST_INVALID: String = "MODEL_REQUEST_INVALID"
 const FINISH_REASONS: PackedStringArray = [
 	"stop", "length", "tool_calls", "content_filter", "insufficient_system_resource",
@@ -86,15 +85,22 @@ func start(request_id: String, filtered_context: Dictionary) -> RefCounted:
 	stream.connect("body_chunk", _on_body_chunk.bind(request_id))
 	stream.connect("response_finished", _on_response_finished.bind(request_id))
 	stream.connect("transport_failed", _on_transport_failed.bind(request_id))
-	var started: RefCounted = stream.start(_config.endpoint_url, _credentials.request_headers(), body.value)
-	if not started.ok:
-		if stream.has_method("cancel"):
-			stream.cancel()
-		return Result.failure(Contract.MODEL_TRANSPORT_ERROR)
 	_requests[request_id] = state
 	_active_count += 1
-	_arm_timer(request_id, "request_token", _config.request_timeout_seconds)
-	_arm_timer(request_id, "idle_token", _config.idle_timeout_seconds)
+	if not _arm_timer(request_id, "request_token", _config.request_timeout_seconds) \
+			or not _arm_timer(request_id, "idle_token", _config.idle_timeout_seconds):
+		state.terminated = true
+		_release_request(request_id, state, false)
+		return Result.failure(Contract.MODEL_TRANSPORT_ERROR)
+	# Register lifecycle state before start(): injected transports are allowed to signal
+	# synchronously, and those callbacks must see the accepted request.
+	var started: RefCounted = stream.start(_config.endpoint_url, _credentials.request_headers(), body.value)
+	if not started.ok:
+		var active: Variant = _active(request_id)
+		if active != null:
+			active.terminated = true
+			_release_request(request_id, active, false)
+		return Result.failure(Contract.MODEL_TRANSPORT_ERROR)
 	return Result.success()
 
 func cancel(request_id: String) -> void:
@@ -139,7 +145,9 @@ func _on_body_chunk(bytes: PackedByteArray, request_id: String) -> void:
 	if state.received_bytes > _config.max_response_bytes:
 		_fail_request(request_id, Contract.MODEL_RESPONSE_INVALID)
 		return
-	_arm_timer(request_id, "idle_token", _config.idle_timeout_seconds)
+	if not _arm_timer(request_id, "idle_token", _config.idle_timeout_seconds):
+		_fail_request(request_id, Contract.MODEL_TRANSPORT_ERROR)
+		return
 	var events: Array = state.parser.feed_bytes(bytes)
 	for event: Variant in events:
 		if state.terminated:
@@ -228,15 +236,14 @@ func _on_transport_failed(code: String, request_id: String) -> void:
 func _complete_request(request_id: String, state: Dictionary) -> void:
 	if state.terminated:
 		return
+	var response := Contract.completed_response(state.text, state.finish_reason, state.usage)
+	if not response.ok:
+		_fail_request(request_id, Contract.MODEL_RESPONSE_INVALID)
+		return
+	var payload: Dictionary = response.value
 	state.terminated = true
-	var response := {
-		"transport_schema_version": TRANSPORT_SCHEMA_VERSION,
-		"content": state.text,
-		"finish_reason": state.finish_reason,
-		"usage": state.usage.duplicate(true),
-	}
 	_release_request(request_id, state)
-	completed.emit(request_id, response)
+	completed.emit(request_id, payload)
 
 func _fail_request(request_id: String, code: String) -> void:
 	var state: Variant = _active(request_id)
@@ -247,7 +254,7 @@ func _fail_request(request_id: String, code: String) -> void:
 	var stable := code if Contract.is_stable_error(code) else Contract.MODEL_TRANSPORT_ERROR
 	failed.emit(request_id, stable)
 
-func _release_request(request_id: String, state: Dictionary) -> void:
+func _release_request(request_id: String, state: Dictionary, remember: bool = true) -> void:
 	_disarm_timer(state, "request_token")
 	_disarm_timer(state, "idle_token")
 	var stream: Variant = state.stream
@@ -261,7 +268,8 @@ func _release_request(request_id: String, state: Dictionary) -> void:
 	state.stream = null
 	_active_count = maxi(_active_count - 1, 0)
 	_requests.erase(request_id)
-	_terminated.remember(request_id)
+	if remember:
+		_terminated.remember(request_id)
 
 func _active(request_id: String) -> Variant:
 	var state: Variant = _requests.get(request_id)
@@ -269,14 +277,15 @@ func _active(request_id: String) -> Variant:
 		return null
 	return state
 
-func _arm_timer(request_id: String, key: String, seconds: float) -> void:
+func _arm_timer(request_id: String, key: String, seconds: float) -> bool:
 	if _clock == null:
-		return
+		return false
 	var state: Variant = _requests.get(request_id)
 	if state == null:
-		return
+		return false
 	_disarm_timer(state, key)
 	state[key] = _clock.schedule(seconds, _on_timeout.bind(request_id))
+	return state[key] != null
 
 func _disarm_timer(state: Dictionary, key: String) -> void:
 	var token: Variant = state.get(key)

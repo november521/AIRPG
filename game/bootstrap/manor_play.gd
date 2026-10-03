@@ -12,11 +12,16 @@ const InteractionHud = preload("res://presentation/exploration/interactions/inte
 const NpcPreview = preload("res://bootstrap/npc_preview.gd")
 const NpcActor = preload("res://presentation/manor/npc_actor.gd")
 const NpcHud = preload("res://presentation/manor/npc_greeting_hud.gd")
+const ManorNpcAi = preload("res://bootstrap/manor_npc_ai.gd")
+const DIALOGUE_VIEW = preload("res://presentation/dialogue/dialogue_view.tscn")
 const WorldItemInteraction = preload("res://application/exploration/interactions/world_item_interaction.gd")
 const WorldItem = preload("res://items/world/world_item.gd")
 var npc_presence = NpcPreview.build()
 var npc_actors: Array[NpcActor] = []
 var npc_hud: NpcHud
+var npc_ai: ManorNpcAi
+var dialogue_view: Control
+var ai_error: String = "AI_NOT_CONFIGURED"
 var _candidate: NpcActor
 signal route_requested(route_id: String)
 const SIDE_SPAWN := Vector3(-8.05, -0.39, -1.64)
@@ -73,8 +78,34 @@ func _ready() -> void:
 	_controls.set_ui_blocked(false)
 	print("AIRPG_STRUCTURE_WALK_READY")
 
+func configure_ai(runtime: Object) -> bool:
+	if npc_ai != null:
+		npc_ai.release()
+		npc_ai = null
+	if is_instance_valid(dialogue_view):
+		dialogue_view.queue_free()
+		dialogue_view = null
+	var built := ManorNpcAi.build(self, runtime, npc_presence.roster(), npc_actors, player,
+		NpcPreview.action_anchors())
+	if not built.ok:
+		ai_error = built.code
+		return false
+	npc_ai = built.value
+	dialogue_view = DIALOGUE_VIEW.instantiate()
+	_hud.add_child(dialogue_view)
+	dialogue_view.hide()
+	dialogue_view.configure(npc_ai.use_case())
+	dialogue_view.back_requested.connect(_close_greeting)
+	ai_error = ""
+	return true
+
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(character_hud):
+		return
+	if _conversation_open() and _dialogue_text_focused():
+		if _controls.escape_pressed(event):
+			_close_greeting()
+			get_viewport().set_input_as_handled()
 		return
 	if interaction_service == null:
 		if _controls.return_requested(event):
@@ -82,7 +113,7 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if _controls.inventory_toggle(event):
-		if npc_hud.is_open():
+		if _conversation_open():
 			_close_greeting()
 		character_hud.set_open(not character_hud.is_open())
 		get_viewport().set_input_as_handled()
@@ -92,7 +123,7 @@ func _input(event: InputEvent) -> void:
 	elif character_hud.is_open() and _controls.escape_pressed(event):
 		character_hud.set_open(false)
 		get_viewport().set_input_as_handled()
-	elif npc_hud.is_open() and (_controls.escape_pressed(event) or _controls.talk_pressed(event)):
+	elif _conversation_open() and (_controls.escape_pressed(event) or _controls.talk_pressed(event)):
 		_close_greeting()
 		get_viewport().set_input_as_handled()
 	elif not character_hud.is_open() and _controls.active() and (_controls.interact_pressed(event) or _controls.talk_pressed(event)):
@@ -101,7 +132,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _on_panel_changed(open: bool) -> void:
-	_controls.set_ui_blocked(open or interaction_service == null or (npc_hud != null and npc_hud.is_open()))
+	_controls.set_ui_blocked(open or interaction_service == null or _conversation_open())
 	session.stop()
 	_pending_interaction = false
 	if interaction_service != null:
@@ -109,6 +140,8 @@ func _on_panel_changed(open: bool) -> void:
 		_interaction_hud.refresh(false)
 
 func _return_to_archive() -> void:
+	if npc_ai != null:
+		npc_ai.end()
 	npc_presence.end_greeting()
 	session.stop()
 	_controls.release_pointer()
@@ -118,7 +151,7 @@ func _return_to_archive() -> void:
 	route_requested.emit("story_archive")
 
 func _unhandled_input(event: InputEvent) -> void:
-	if character_hud.is_open() or interaction_service == null or npc_hud.is_open():
+	if character_hud.is_open() or interaction_service == null or _conversation_open():
 		return
 	apply_look(_controls.look_motion(event))
 
@@ -146,14 +179,14 @@ func _physics_process(_delta: float) -> void:
 	elif _controls.cellar_requested():
 		visit_cellar()
 	_hud.show_location(player.position, _controls.active())
-	if npc_hud.is_open():
+	if _conversation_open():
 		_hud.show_ui_state("walk.talking")
 	elif character_hud.is_open():
 		_hud.show_ui_state("walk.dossier")
 	var requested: bool = _pending_interaction
 	_pending_interaction = false
 	if interaction_service != null:
-		var enabled: bool = _controls.active() and not character_hud.is_open() and not npc_hud.is_open()
+		var enabled: bool = _controls.active() and not character_hud.is_open() and not _conversation_open()
 		interaction_service.set_enabled(enabled)
 		interaction_service.refresh_focus()
 		var focus: Dictionary = interaction_service.read_focus()
@@ -165,7 +198,7 @@ func _physics_process(_delta: float) -> void:
 				_open_greeting()
 		_candidate = _find_candidate() if enabled and focus.is_empty() else null
 		npc_hud.show_candidate(_candidate.name_key if _candidate != null else "")
-		_interaction_hud.refresh(_controls.active() and not npc_hud.is_open())
+		_interaction_hud.refresh(_controls.active() and not _conversation_open())
 
 func _find_candidate() -> NpcActor:
 	var nearest: NpcActor
@@ -194,7 +227,12 @@ func _open_greeting() -> void:
 		player.position.distance_to(_candidate.position), _can_see(_candidate))
 	if reply.ok:
 		_candidate.set_greeting_target(player.global_position)
-		npc_hud.show_greeting(reply.value)
+		if npc_ai != null and is_instance_valid(dialogue_view) \
+				and npc_ai.begin(_candidate.npc_id).ok:
+			npc_hud.dismiss()
+			dialogue_view.show()
+		else:
+			npc_hud.show_greeting(reply.value)
 		_controls.set_ui_blocked(true)
 		session.stop()
 		_pending_interaction = false
@@ -205,6 +243,10 @@ func _close_greeting() -> void:
 	if _candidate != null:
 		_candidate.clear_greeting_target()
 	npc_presence.end_greeting()
+	if npc_ai != null:
+		npc_ai.end()
+	if is_instance_valid(dialogue_view):
+		dialogue_view.hide()
 	npc_hud.dismiss()
 	_controls.set_ui_blocked(character_hud.is_open() or interaction_service == null)
 	_pending_interaction = false
@@ -239,6 +281,19 @@ func _sync_held_visual() -> void:
 	player.get_node("Camera/HandSocket").add_child(_held_visual)
 
 func _exit_tree() -> void:
+	if npc_ai != null:
+		npc_ai.release()
+		npc_ai = null
 	_controls.release_pointer()
 	if interaction_service != null:
 		interaction_service.close()
+
+func _conversation_open() -> bool:
+	return (npc_hud != null and npc_hud.is_open()) \
+		or (is_instance_valid(dialogue_view) and dialogue_view.visible)
+
+func _dialogue_text_focused() -> bool:
+	if not is_instance_valid(dialogue_view):
+		return false
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	return focused is LineEdit and dialogue_view.is_ancestor_of(focused)

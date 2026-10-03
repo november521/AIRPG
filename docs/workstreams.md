@@ -33,6 +33,13 @@ bootstrap、shared、全局 Schema、输入动作名称、公共端口由 A 审�
 
 ## 下一轮建议工作包
 
+当前 AFGCI-NPC-AI（2026-10-03）：本任务负责输入 API 模式的 NPC AI 纵向切片，基线 e41553fb，
+分支 `codex/npc-ai-input-api`，独立 managed worktree 实施，未覆盖主工作区改动。所有权覆盖 A 装配/契约、
+F 知识与校验、G 传输桥、C 场景语义动作、I 连接与对话入口、J 离线回归；独立对抗复核待分配。
+范围是运行时 endpoint/model/key 输入、整条缓存后验证的对话、`stay/face/move_to_anchor` 和合成庄园预览；
+非目标为正式人物/剧情、真实服务商联调、检定与状态提交、长期记忆及存档。ADR 0009 与
+`npc-ai-input-api.md` 记录契约和试玩步骤；聚合验证登记 F1/G1/I1/NPC-AI 套件。
+
 当前 C-MI1（2026-10-02）：本任务负责庄园预设交互，基线 921556a，
 codex/manor-interactions / .tools/worktrees/manor-interactions 独立实施后同步主工作区供用户试玩。
 所有权覆盖探索领域/应用/物理输入与展示、角色拾取事务；A 同任务登记契约/装配，独立复核待分配。

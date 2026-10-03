@@ -13,6 +13,14 @@ const NpcRigTests = preload("res://tests/manor/npc_animation_tests.gd")
 const CharacterTests = preload("res://tests/manor/character_tests.gd")
 const InteractionTests = preload("res://tests/interactions/test_interactions.gd")
 const InteractionSceneTests = preload("res://tests/interactions/test_scene_interactions.gd")
+const G1Tests = preload("res://tests/g1/test_g1_suite.gd")
+const F1KnowledgeTests = preload("res://tests/f1/test_f1_knowledge.gd")
+const F1LifecycleTests = preload("res://tests/f1/test_f1_lifecycle.gd")
+const F1ValidationTests = preload("res://tests/f1/test_f1_reply_validation.gd")
+const F1UseCaseTests = preload("res://tests/f1/test_f1_use_case.gd")
+const I1BehaviorTests = preload("res://tests/i1/test_dialogue_view_behavior.gd")
+const I1LifecycleTests = preload("res://tests/i1/test_dialogue_view_lifecycle.gd")
+const NpcAiTests = preload("res://tests/npc_ai/test_npc_ai_pipeline.gd")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -77,6 +85,25 @@ func _run() -> void:
 	await process_frame
 	print("AIRPG_BASE_TESTS: %d checks" % _checks)
 	var before: int = _checks
+	G1Tests.new().run(_check)
+	print("AIRPG_G1_TESTS: %d checks" % (_checks - before))
+	before = _checks
+	for suite: Variant in [F1KnowledgeTests, F1LifecycleTests, F1ValidationTests, F1UseCaseTests]:
+		suite.new().run(_check)
+	print("AIRPG_F1_TESTS: %d checks" % (_checks - before))
+	before = _checks
+	NpcAiTests.new().run(_check)
+	print("AIRPG_NPC_AI_TESTS: %d checks" % (_checks - before))
+	before = _checks
+	var i1_host := Control.new()
+	i1_host.name = "I1TestHost"
+	root.add_child(i1_host)
+	await I1BehaviorTests.new().run(_check, i1_host)
+	await I1LifecycleTests.new().run(_check, i1_host)
+	i1_host.queue_free()
+	await process_frame
+	print("AIRPG_I1_TESTS: %d checks" % (_checks - before))
+	before = _checks
 	await StoryArchive.new().run(_check, self)
 	print("AIRPG_ARCHIVE_TESTS: %d checks" % (_checks - before))
 	before = _checks
@@ -85,7 +112,9 @@ func _run() -> void:
 	before = _checks
 	await NpcRigTests.new().run(_check, self)
 	print("AIRPG_NPC_RIG_TESTS: %d checks" % (_checks - before))
+	before = _checks
 	CharacterTests.new().run(_check)
+	print("AIRPG_CHARACTER_TESTS: %d checks" % (_checks - before))
 	before = _checks
 	InteractionTests.new().run(_check)
 	await InteractionSceneTests.new().run(_check, self)
