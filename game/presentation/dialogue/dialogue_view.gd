@@ -31,6 +31,8 @@ var _session_generation: int = 0
 var _playback_generation: int = 0
 var _pending_options: Array = []
 var _playback_request_id: String = ""
+## States where the player may still submit: only waiting for a request locks free text.
+const _INPUT_STATES: Array[int] = [Chrome.State.IDLE, Chrome.State.FAILED, Chrome.State.PAUSED, Chrome.State.CANCELLED]
 
 var _chrome: Chrome
 var _options: Options
@@ -223,11 +225,11 @@ func _close_request(request_id: String) -> void:
 		_active_request_id = ""
 
 func _on_submit_pressed() -> void:
-	if _released or _state != Chrome.State.IDLE:
+	if _released or _state not in _INPUT_STATES:
 		return
 	_send("text", _input_edit.text, "", true)
 func _on_option_pressed(option_id: String, display_text: String) -> void:
-	if _released or _state != Chrome.State.IDLE:
+	if _released or _state not in _INPUT_STATES:
 		return
 	_send("option", display_text, option_id, true)
 func _on_retry_pressed() -> void:
@@ -252,6 +254,7 @@ func _send(kind: String, text: String, option_id: String, echo: bool) -> bool:
 		result = _use_case.call("select_option", request_id, option_id)
 	if result == null or not result.ok:
 		_notice_text = tr("dialogue.free_text.rejected")
+		print("AIRPG_DIALOGUE_REJECTED: ", result.code if result != null else "no_result")
 		_render()
 		return false
 	_last_submission = {"kind": kind, "text": text, "option_id": option_id}
@@ -268,8 +271,7 @@ func _send(kind: String, text: String, option_id: String, echo: bool) -> bool:
 	submission_accepted.emit(kind, request_id)
 	return true
 
-func _toggle_history() -> void:
-	_history_panel.visible = not _history_panel.visible
+func _toggle_history() -> void: _history_panel.visible = not _history_panel.visible
 
 func _next_request_id() -> String:
 	_request_counter += 1
@@ -288,9 +290,7 @@ func _set_state(next: int) -> void:
 	_state = next
 	state_changed.emit(_state)
 
-func _render() -> void:
-	if is_node_ready():
-		_chrome.render(_state, _last_error_code, _retry_enabled(), _notice_text)
+func _render() -> void: if is_node_ready(): _chrome.render(_state, _last_error_code, _retry_enabled(), _notice_text)
 
 func _disconnect_use_case() -> void:
 	if _use_case != null and _use_case.has_signal("view_event") \

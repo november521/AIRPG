@@ -210,9 +210,9 @@ func _output_policy(check: Callable, cards: Array) -> void:
 	check.call(Policy.validate(mary, "那不是我带来的。").ok,
 		"NPC policy: Mary's precisely-true limitation is allowed")
 	check.call(Policy.validate(mary, "……谁？").ok, "NPC policy: Mary's counter-question passes")
-	check.call(not Policy.validate(mary, "我不知道。我不知道。我不知道。").ok,
+	check.call(not Policy.validate(mary, "我不知道。我不知道。我不知道。我不知道。").ok,
 		"NPC policy: more sentences than the bubble budget is rejected")
-	check.call(not Policy.validate(mary, "这一句话故意写得非常长已经明显超过了四十个字的单句上限用来验证长度检查确实会拒绝它。").ok,
+	check.call(not Policy.validate(mary, "这一句话故意写得非常长已经明显超过了六十个字的单句上限用来验证长度检查确实会拒绝它并且再补上一段继续拉长确保它稳稳超过限制不然这个用例就不可靠。").ok,
 		"NPC policy: a line beyond the per-sentence character budget is rejected")
 	check.call(Policy.validate(mary, "……").ok and Policy.validate(mary, "（她先移开视线。）").ok,
 		"NPC policy: silence and a single action line pass")
@@ -294,8 +294,28 @@ func _end_to_end(check: Callable, bundle: Dictionary) -> void:
 	var verified: Array = events.filter(func(item: Dictionary) -> bool:
 		return item.kind == "verified_reply" and item.get("speaker_id") == "mary")
 	check.call(verified.size() == 1, "NPC end to end: Mary's evasion is published")
+	_multi_turn(check, use_case, transport, events)
 	use_case.release()
 	gateway.release()
+
+## A rejected reply must never wedge the registry: the very next question has to reach the model.
+func _multi_turn(check: Callable, use_case: RefCounted, transport: RefCounted, events: Array) -> void:
+	use_case.end_exchange()
+	use_case.begin_exchange("mary", "manor", "manor.room.reception")
+	use_case.submit_text("turn.1", "你认识克莱姆吗？")
+	transport.finish("turn.1", _envelope("不是我干的。", "mary", []))
+	use_case.begin_exchange("mary", "manor", "manor.room.reception")
+	var accepted: RefCounted = use_case.submit_text("turn.2", "那你今晚在哪儿？")
+	check.call(accepted.ok and transport.accepted.has("turn.2"),
+		"NPC multi turn: a rejected reply does not block the next question")
+	transport.finish("turn.2", _envelope("……还有事吗。", "mary", []))
+	var published: int = events.filter(func(item: Dictionary) -> bool:
+		return item.kind == "verified_reply" and item.get("request_id") == "turn.2").size()
+	check.call(published == 1, "NPC multi turn: the next answer still reaches the view")
+	var third: RefCounted = use_case.submit_text("turn.3", "回答我。")
+	check.call(third.ok and transport.accepted.has("turn.3"),
+		"NPC multi turn: consecutive turns keep working")
+	transport.finish("turn.3", _envelope("我不想伤害任何人。", "mary", []))
 
 func _has(facts: Array, fact_id: String) -> bool:
 	for fact: Dictionary in facts:

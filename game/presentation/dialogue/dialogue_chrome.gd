@@ -40,9 +40,12 @@ func localize() -> void:
 	_portrait_fallback.text = tr("dialogue.portrait.missing")
 
 func render(state: int, error_code: String, can_retry: bool, notice: String) -> void:
-	var idle: bool = state == State.IDLE
-	_input_edit.editable = idle
-	_submit_button.disabled = not idle
+	# A failed, paused or cancelled reply must not lock the conversation: the player can keep
+	# talking or rephrase while retry stays next to them. Locking free text here made a rejected
+	# or timed-out answer look like a frozen dialogue.
+	var editable: bool = state in [State.IDLE, State.FAILED, State.PAUSED, State.CANCELLED]
+	_input_edit.editable = editable
+	_submit_button.disabled = not editable
 	_skip_button.visible = state == State.PRESENTING
 	_retry_button.visible = can_retry
 	# Leaving the conversation must always be one visible click away: while a request waits or a

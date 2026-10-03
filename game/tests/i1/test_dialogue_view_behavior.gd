@@ -15,6 +15,7 @@ func run(check: Callable, host: Node) -> void:
 	await _option_flow(check, host)
 	await _input_guards(check, host)
 	await _failure_and_retry(check, host)
+	await _failure_keeps_conversation_alive(check, host)
 	await _paused_and_cancelled(check, host)
 	await _event_hygiene(check, host)
 	await _portraits_and_long_text(check, host)
@@ -363,6 +364,32 @@ func _conversation_boundary(check: Callable, host: Node) -> void:
 	check.call(view.get_state() == Chrome.State.IDLE, "new conversation starts idle")
 	check.call(_history(view).entry_count() == 3,
 		"transcript marks the conversation boundary instead of merging both speakers")
+	await _free(ctx)
+
+## A failed reply used to lock free text, so a rejected or timed-out answer read as a frozen
+## dialogue after the second question. The player must be able to just keep talking.
+func _failure_keeps_conversation_alive(check: Callable, host: Node) -> void:
+	var ctx := await _make(host)
+	var view: DialogueView = ctx.view
+	var fake: FakeDialogue = ctx.fake
+	var input := _line_edit(view, "InputEdit")
+	var submit := _button(view, "SubmitButton")
+	input.text = "第一问"
+	submit.pressed.emit()
+	fake.publish(Contract.status(view.get_active_request_id(), Contract.STATUS_FAILED,
+		Transport.MODEL_TIMEOUT, true))
+	check.call(view.get_state() == Chrome.State.FAILED, "failed reply enters failed state")
+	check.call(input.editable and not submit.disabled,
+		"failed reply keeps free text usable instead of freezing the dialogue")
+	input.text = "换个问法"
+	submit.pressed.emit()
+	check.call(fake.submissions.size() == 2, "a new question is accepted after a failure")
+	check.call(view.get_state() == Chrome.State.WAITING, "the new question enters waiting")
+	var request_id := view.get_active_request_id()
+	fake.publish(_reply(request_id, "第二答"))
+	view.skip_playback()
+	check.call(view.get_state() == Chrome.State.IDLE and view.get_reply_text() == "第二答",
+		"the conversation continues after a failure")
 	await _free(ctx)
 
 func _localization_and_history(check: Callable, host: Node) -> void:
