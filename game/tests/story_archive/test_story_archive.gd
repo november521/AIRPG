@@ -185,9 +185,27 @@ func _production(check: Callable, tree: SceneTree) -> void:
 	archive.get_node("%Enter").pressed.emit()
 	await tree.create_timer(0.8).timeout
 	check.call(main._services.session.read_state() == state_before, "ARCH: rejected launch does not mutate gameplay state")
+	var creation: Node = host.get_child(0)
+	check.call(creation.name == "CreationView", "ARCH: story launch opens editable creation page")
+	check.call(host.mouse_filter == Control.MOUSE_FILTER_STOP, "ARCH: creation page accepts mouse input")
+	var draft = main._creation_service
+	check.call(not main._navigate("manor").ok, "ARCH: unfinished creation cannot enter manor")
+	draft.set_text("name", "林", 0)
+	draft.set_text("role", "记者", 1)
+	draft.set_value("strength", 80, 2)
+	draft.set_value("dexterity", 80, 3)
+	draft.set_value("awareness", 3, 4)
+	draft.set_value("insight", 3, 5)
+	check.call(draft.confirm(6).ok, "ARCH: completed creation can confirm")
+	creation.route_requested.emit("manor")
+	await tree.process_frame
 	var manor: Node = host.get_child(0)
-	check.call(manor.name == "ManorStructureExperience", "ARCH: main launch enters integrated manor prototype")
+	check.call(manor.name == "ManorStructureExperience", "ARCH: confirmed investigator enters manor prototype")
 	check.call(host.mouse_filter == Control.MOUSE_FILTER_IGNORE, "ARCH: scene host passes mouse events to first person")
+	check.call(manor.character_service.read_character().profile.attributes.strength == 80, "ARCH: confirmed values reach in-game character view")
+	# 合并期间这条接线曾被静默覆盖过一次，留一条断言防止再次丢失。
+	check.call(manor.character_hud._character_page != null and manor.character_hud._character_page._identity.text.contains("林"),
+		"ARCH: notebook character page shows the created investigator")
 	manor.route_requested.emit("story_archive")
 	await tree.process_frame
 	archive = host.get_child(0)

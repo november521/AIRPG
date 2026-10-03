@@ -1,5 +1,267 @@
 # 接续记录
 
+## 十二件道具并入 V4 修复版庄园（2026-10-03）
+
+工作包 A-MANOR-V4-PROPS / 负责人本任务 / 独立对抗复核待分配；分支 `feature/manor-props-v4`
+（工作目录 `D:\AIRPG\airpg_v3`），基线 `feature/manor-v3-scene` @ `5f049f2`（V4 修复版），
+合入 `feature/manor-props` @ `3226ad6`。
+
+改动：把下一节的十二件物品与发电设备并入 V4 重建后的庄园场景。
+
+- `game/bootstrap/manor_interactions.gd` 以 V4 版为底重新贴合：保留 V4 的门
+  `extras.angle_open_deg` 绑定与撬棍新落点 `(-3.5, 0.24, -1.6)`（原先的位置已被关着的
+  接待室门占住），在其上恢复十二个 `_place_item` 调用、发电机装配与 `_place_item`
+  静态辅助函数。其余文件沿用 `feature/manor-props`。
+- **四个地窖落点按 V4 实测重推**，并同步更新
+  `game/tests/interactions/test_scene_interactions.gd` 里的玩家传送坐标。
+- 本轮**未改**引擎版本、存档格式、走行网格与门契约；V4 的地窖坡道与
+  `V4_PryFloorCollision` 原样保留。
+
+同时修正下一节带入的三处缺陷：
+
+1. **文档回退**：下一节的分支由旧工作区覆盖而来，回退了 main 的内容——
+   `scripts/verify.ps1` 少了 `NPC_RIG_TESTS` / `INTERACTION_TESTS` 两个门禁套件
+   （等于放宽验证），`docs/architecture.md` 少了 `items` 层一行，`contracts.md` /
+   `testing.md` / `workstreams.md` / `adr/0006` / `README.md` / `handoff.md` 各有缺失段落。
+   本轮全部还原为 main 版本，只保留 `contracts.md` 中真正新增的「演示车卡编辑入口」契约。
+2. **ADR 编号冲突**：车卡 ADR 与 main 的 `0008-scoped-interactions.md` 同时编号 0008，
+   已改名 `docs/adr/0009-prototype-character-creation.md` 并更新 `contracts.md` 引用。
+3. **注释与事实不符**：`manor_interactions.gd` 中曾声称落点「已按 V4 实测」，已改为如实说明。
+
+### 第一次推送的 CI 失败与修复（地窖落点）
+
+第一次推送后 CI 在铜线圈上失败 2 项。原因是下一节的四个地窖落点按**原型**地窖
+`y = -2.72` 填的，而 V4 把地窖下移到 `y = -3.23` 并把踏步改成了坡道。用只读探针实测 V4
+走行网格得到：**地窖楼板平在 `y = -3.23`；V4 坡道从 `z = -11` 的 `y ≈ -0.39` 降到
+`z = -7.5` 的 `y ≈ -3.11`，占 `x -5.5..-4.5`**（房间地图登记的坡道带是 `x -6.10..-4.20`）。
+
+据此判定：铜线圈 `(-4.7, -3.23, -10.0)` 与手提灯 `(-5.4, -3.23, -10.2)` 正好埋在坡道内部
+（其上方坡道面实测在 `y ≈ -1.0 ~ -1.2`），交互射线被坡道挡住，测试函数在
+`test_scene_interactions.gd:143` 抛错中断，**连带丢掉 25 项检查**（INTERACTION 93 而非 118）。
+两件移出坡道带后复测通过：
+
+| 物品 | 旧落点 | 新落点 | 测试玩家点 |
+| --- | --- | --- | --- |
+| 铜线圈 | `(-4.7, -3.23, -10.0)` | `(-3.4, -3.23, -11.4)` | `(-2.2, -3.15, -11.4)` |
+| 手提灯 | `(-5.4, -3.23, -10.2)` | `(-2.6, -3.23, -7.6)` | `(-3.8, -3.15, -7.6)` yaw `-PI/2` |
+| 保险丝 | `(-3.8, -3.23, -10.6)` 不变 | 同上 | `(-2.6, -3.15, -10.6)` |
+| 绝缘带 | `(-4.0, -3.23, -12.0)` 不变 | 同上 | `(-2.8, -3.15, -12.0)` |
+
+### 验证
+
+- 架构门禁：174 个源/场景文件通过，3 项架构负向用例通过。
+- 资源导入：退出码 0（含 V4 的 82.1 MiB `manor.glb`）。
+- 行为测试：`AIRPG_TESTS: 543 checks, 0 failures`（BASE 95 / ARCHIVE 68 / MANOR 118 /
+  NPC_RIG 12 / CHARACTER 110 / CREATION 22 / INTERACTION 118）。
+- 启动：`AIRPG_BOOT_READY`。
+- `./scripts/verify.ps1` 未原样跑通：本机既有的
+  `ERROR: Failed to read the root certificate store.`（`os_windows.cpp:2582`）会触发它的
+  错误输出判定。按既有做法用逻辑等价驱动执行四步（相同参数、相同错误正则与完成标记，
+  仅登记该环境行），未放宽任何其他判定。
+
+**仍然未验证**
+
+- 其余九个落点（走廊 / 接待室 / 厨房 / 医生书房 / 院区）仍是在**原型**庄园上量的，
+  未在 V4 上复测。V4 的家具与道具不参与走行碰撞，物品仍可能落进家具内部。
+- 未做真实键鼠与不同 DPI 人工走查、未验证导出包与低配性能；独立对抗复核待分配。
+- 顺手发现但未处理：远端另有一条 `feature/held-inventory-item`（`e41553f`），本轮未纳入。
+
+## 庄园道具接入：十二件物品、发电设备与角色创建（2026-10-03）
+
+用户陆续给出多个 Sketchfab GLB，要求按既有架构放进庄园。范围限 `game/items/**`、
+`game/bootstrap/{character_preview,manor_interactions}.gd`、`game/presentation/manor/generator.*`、
+`game/presentation/character/{creation_view,creation_number_row,notebook_character_page}.*`、
+本地化与测试；**未改引擎版本、存档格式或共享契约**——物品沿用既有 `items/` 框架的
+`item_data.gd` 契约，设备沿用既有 `Handler` 扩展点，角色创建沿用既有 `character_service.gd` 用例。
+
+十二件物品各有 `items/data/<id>.tres`（定义）、`items/world/<id>_world.tscn`（地面实例：
+`Model` + 射线用 `Target`(StaticBody3D, layer 8) + `Name`(Label3D)）、`items/held/<id>_held.tscn`
+（手持）与 `items/models/<id>.glb`；经 `character_preview.gd` 的 `_item_definition()` 注册定义、
+`manor_interactions.gd` 的 `_place_item()` 放置。来源与落地位置：
+
+| id | 中文 | 来源 / 作者 | 许可 | 落地位置 |
+| --- | --- | --- | --- | --- |
+| silver_urn | 骨灰盒 | Silver Chest / badams3D | CC-BY-4.0 | 走廊 (-4.3, 0.065, -0.8) |
+| doctor_diary | 医生日记 | PBR Dark Diary / Ferocious Industries | CC-BY-4.0 | 医生书房 (3.4, 0.0, -4.4) |
+| wallet | 钱包 | PG #2 Wallet / PlumCantaloupe | CC-BY-4.0 | 接待室 (-6.5, 0.0, 2.0) |
+| copper_wire_coil | 铜线圈 | Copper wire coil / famousandfaded | Sketchfab Standard（业主确认已获许可） | 地窖 (-4.7, -2.72, -10.0) |
+| electrical_tape | 绝缘带 | Blue Electrical Tape / GameDev Nick | CC-BY-4.0 | 地窖 (-4.0, -2.72, -12.0) |
+| lantern | 手提灯 | Old Lantern / Pixel Life | CC-BY-4.0 | 地窖 (-5.4, -2.72, -10.2) |
+| wrench | 扳手 | Old Wrench / MaX3Dd | CC-BY-4.0 | 院区 (-9.3, -0.46, -8.6) |
+| radio | 收音机 | Vintage radio / Loïc | CC-BY-4.0 | 接待室 (-7.8, -0.005, 3.2) |
+| crowbar | 撬棍 | Crowbar / badams3D | CC-BY-4.0 | 走廊 (-4.3, 0.24, 0.0)（替换原绿色方块占位） |
+| kerosene_bottle | 煤油罐 | Kerosene Bottle / FaizU | CC-BY-4.0 | 厨房 (0.5, 0.0, 2.0) |
+| manor_key | 钥匙 | key / yomans | CC-BY-4.0 | 医生书房 (5.2, 0.0, -4.4) |
+| fuse | 保险丝 | Fuse / AliA Animations | CC-BY-4.0 | 地窖 (-3.8, -2.48, -10.6) |
+
+**十二件目前只有一条生命周期：拾取 → 进手记「随身物品」→ 装备到手上 → 放下。**
+没有任何一件带剧情推进、锁钥、容器、燃料、检定或消耗行为；`zh_CN.json` 的描述逐条写明
+「当前尚未接入 … 功能」，以免把未授权内容说成正式功能。可否丢弃以 `droppable` 区分：
+可丢 5 件（撬棍、扳手、煤油罐、手提灯、收音机），不可丢 7 件（其余，`protected = true`）。
+后续若要把它们接成一条「修复/启动设备」的线索，需要先取得授权内容再动。
+
+院区发电机组（`manor.device.generator`，静置 (-11.0, -0.427, -7.0)）是一个**本地启停状态机**：
+`domain/exploration/device_state.gd` 与既有 `door_state.gd` 同级，`application/.../device_interaction.gd`
+实现既有 `Handler` 接口，presentation 只做机身抖动与指示灯，**不接供电、不耗燃料、不做检定、
+无任何下游效果**。它用一个 `collision_layer = 9` 的实体盒同时充当挡路体积与射线目标。
+
+资产流水线新增两个脚本，都在 `scripts/assets/`：
+
+- `decimate_glb.py`（Blender，仅几何）：先 `remove_doubles` 焊接再 collapse 减面。
+  **焊接不可省**：Sketchfab 按 16 位索引上限 65532 顶点切块，join 后每条接缝都有一圈重复顶点，
+  collapse 跨不过接缝会直接把表面削没（骨灰盒 542967→10076 顶点，保险丝 169565→1865）。
+- `repack_glb.py`（纯 Python + Pillow，仅贴图与缩放）：把等比缩放烘焙进 POSITION 与 min/max、
+  按材质 `normalTexture` 识别法线贴图给不同分辨率、统一重编码 JPEG 并同步修正 `mimeType`。
+  它不碰临时文件，因此在受限 Windows 环境可用（Blender 的 glTF 导出器重编码贴图必经
+  `mkdtemp` 目录，而该目录在本机写不进去）。
+
+顺带修掉两件**接入时未减面**的资产：`fuse.glb` 126296 面 / 6.63 MiB → 3999 面 / 284 KiB；
+`manor_key.glb` 44878 面 / 1268 KiB → 3000 面 / 93 KiB。`game/items/models` 合计
+34.67 MiB → **27.17 MiB**，两者尺寸均未改变（18×18×90 mm、160×10×53 mm）。
+
+另修 `scripts/check_architecture.ps1`：本工作区此前的 `$allowed` 里**没有注册 `items` 层**，
+而 `items/` 代码已并入，导致架构门禁自合并起一直失败（满屏 `Unowned source: items/...` 与
+`Forbidden dependency: bootstrap/*.gd -> items/...`）。按上游 main 的版本补回
+`items = @('items','presentation','application','domain','shared')` 与 bootstrap 的 `'items'`，
+**不是放宽规则，是恢复与仓库一致**。
+
+验证：架构检查 **174 个源/场景文件通过 + 3 个负向用例**；`res://tests/run_tests.gd` 为
+**`AIRPG_TESTS: 518 checks, 0 failures`**（BASE 95 / ARCHIVE 68 / MANOR 93 / CHARACTER 110 /
+NPC_RIG 12 / CREATION 22 / INTERACTION 118）；`--quit-after 5` 含 `AIRPG_BOOT_READY` 且无脚本错误。
+另用几何探针逐件核对世界与手持场景的真实顶点范围（`get_aabb()` 对部分模型不可信，例如钱包报
+1.397×1.449×1.276 而真实顶点仅 1.034×0.434×0.720，一律遍历 `surface_get_arrays()` 实测）。
+一致性审计（12 件物品 × 定义/世界/手持/模型/两条本地化键/两处注册）**0 问题**，
+`.gd.uid` 与 `.import` 完整。实机 1280×720 OpenGL 截图确认落地、名牌、对焦提示与手持取景。
+
+未做：没有任何一件物品接入剧情、锁钥或检定（属未授权内容）；发电机没有下游效果；
+真实键鼠走查、不同 DPI、导出包与性能未验证；**独立对抗复核待分配**；本轮改动已提交到本地分支
+`feature/manor-props`，**未推送**（本机无 GitHub 凭据）。日志仍报本机既有的根证书读取失败。
+
+**给下一个 agent 的三个坑**：① `game/presentation/shell/manor_room_map.gd` 的房间区间与
+`manor.glb` 里 `MS_*_Boards` 网格范围**对不上**（如书房 z −5.84..0.0 vs −8.75..−2.92），
+放道具前必须取重叠区；② Godot 的 `Transform3D` 12 浮点构造是**行主序**（`x_axis=(xx,yx,zx)`），
+按列主序写会被静默转置——钱包曾因此飞到 y≈−88 完全不可见，而射线仍正常，极易误判成"模型没导入"；
+③ 主流程现在会先进入 `CreationView`，截图/探针脚本若直接实例化 `manor_play.tscn` 绕开主流程，
+**本地化不会自动加载**，`tr()` 会返回原始键名并连带把 HUD 的 `%` 格式化打出 `SCRIPT ERROR`，
+需手动 `Localization.install(JsonFile.read("res://data/localization/zh_CN.json").value, "zh_CN")`。
+
+## 庄园模型换成 V4 修复版（2026-10-03）
+
+用户给出 `output/manor_v4`，要求用这个模型替换原有模型。工作包 A-MANOR（模型线）/
+负责人本任务 / 独立对抗复核待分配；仍在 `feature/manor-v3-scene` 分支与同一 worktree 上实施，
+用户明确选择「用新的模型」，即游戏常量一起对齐 V4；主工作区未动。
+
+不能直接换文件：V4 交付的 `manor_repaired_v4.glb`（79.8 MiB）没有
+`ManorWalkCollision-colonly`，直接替换会让 `ImportedDoorCollision.strip` 返回
+`MANOR_COLLISION_MISSING`、整个交互装配失败（门、拾取、提示全部消失）。V4 自带的
+`validate_import.gd` 是自己搭 trimesh 碰撞的独立校验，不代表游戏契约满足。因此改为从
+`manor_repaired_v4.blend` 用 `scripts/assets/export_manor.py`（由 `export_manor_v3.py` 改名并
+扩展）重新导出游戏用 GLB。
+
+导出改动：V4 新增集合 `V4_EmptyCellar`、`V4_ConcealedEntrance` 进入视觉；地窖坡道改用交付包
+的 `V4_CellarRamp-colonly`；可撬地板（17 板 + 3 托条）不进入走行网格，改由独立的
+`V4_PryFloorCollision-colonly` 承担碰撞，走行网格在该处留洞，对应 V4 元数据的 `on_open`
+约定；移除 V3 遗留的地窖坡道常量。修掉一个自造缺陷：这块地板碰撞盒的面片绕序反了，
+ConcavePolygonShape 单面碰撞导致角色从顶面掉进去卡在底面，重新导出后正常。
+
+游戏侧同步：`manor_interactions._door` 改为按模型自述姿态绑定——V4 把十扇门叶做成“关闭”
+姿态并携带 `angle_open_deg`（76°/82°），V3 则是“已打开”姿态，因此按元数据是否存在分支，
+开门方向仍由 `_open_yaw_for_player` 按玩家所在侧选择（保留紧贴门可开门的修复）；
+`MAX_FACES_PER_DOOR` 550 → 900（V4 把关闭门叶与内嵌门板一起烘进走行网格，实测每扇
+540–726 面，`MIN` 仍 200）；`CELLAR_SPAWN` → `(-3.6,-3.19,-7.4)`、地窖补给点 →
+`(-2.9,-2.99,-9.5)`、`manor_room_map` 增加按高度判定的坡道区；撬棍世界物品从
+`(-4.3,0.24,0.0)` 移到 `(-3.5,0.24,-1.6)`，因为 V4 的接待室门现在是关闭姿态，原位置会嵌在门叶里
+（该值与其主工作区未提交改动一致）。测试：走行用例先在测试夹具里调用生产剔除适配器，
+再跑穿门与地窖路线；地窖改为「关闭地板挡住楼梯 → 释放地板碰撞 → 坡道上下行 → 新地面承重」。
+
+验证（固定引擎 4.7.2，worktree 内）：架构检查 131 文件 + 3 项负向用例通过（删掉临时诊断后
+128）；`--editor --import` 退出码 0，`manor.glb` 82.1 MiB / 5251 对象 / 130.7 万三角面 /
+61 材质 / 34 贴图 / 69 204 走行碰撞面；`AIRPG_TESTS: 379 checks, 0 failures`
+（BASE 95 / ARCHIVE 62 / MANOR 118 / NPC_RIG 12 / CHARACTER 38 / INTERACTION 54）；
+`--quit-after 5` 出现 `AIRPG_BOOT_READY`；真实窗口截图
+`artifacts/manor_v4/game_hall_v4.png`。抽取贴图按 V4 的 34 张同步，删除 copper 的 2 张残留。
+`./scripts/verify.ps1` 仍只被本机既有的根证书读取失败挡住，未放宽其他判定。
+
+未实现/待复核：**可撬地板只有资产与碰撞，没有撬棍交互**，所以运行时地窖、地窖补给与线索
+暂时不可达（只能 B 键捷径进入），需要独立工作包新增交互类型与失败路径测试；走行网格是
+单一凹多边形，撬开后无法局部还原，将来若要“重新盖上”需要可开关碰撞体；未做 LOD、合批、
+显存与帧率验收，5253 节点与 130 万三角面的绘制调用仍是主要风险；未做导出包、低配与不同
+DPI 验收；独立对抗复核待分配。复核重点：门姿态绑定在 V3/V4 两种模型上的分支、地板碰撞
+开关前后的走行、以及地窖坡道与楼梯净空。
+
+## 紧贴门开不了门：门净空只挡新增接触（2026-10-03）
+
+用户试玩反馈「紧贴门开不了门」。工作包 C-MI2 / 负责人本任务 / 独立对抗复核待分配，
+仍在 `feature/manor-v3-scene` 分支与同一 worktree 上实施，主工作区未动。
+
+复现与定位（无界面物理诊断，逐门双面）：站在门叶前 0.259–0.260 米（胶囊半径 0.23 + 门叶半厚
+0.0275 + `safe_margin`）时，准星能命中门体并显示提示，但按 F 全部返回 `DOOR_BLOCKED`：
+十扇门、两个方向 20 个用例无一例外。根因在 `infrastructure/exploration/physics_door_clearance.gd`：
+扫掠在 17 个角度上采样门叶，**包含起始（关闭）姿态**，而查询带 `margin = 0.045`；
+角色靠住门叶后间隙只有约 0.002 米，于是「本来已经贴在门上的人」被判成阻挡。
+这是净空规则的问题，不是射线、遮挡或模型问题（射线同时命中的门体会被绑定，聚焦正常）。
+
+改动只落在净空适配器与测试，未改契约：`is_clear` / `is_clear_pose` 签名不变。
+新规则：开启方向先记录起始姿态的接触体，扫掠中只把「新增接触」算作阻挡；若门叶停下时
+仍压在这些接触体上，或该姿态出现任何接触，仍然 `DOOR_BLOCKED`。关闭方向不启用容忍，
+与改动前逐字一致，因此「站在门扇将要经过的位置不能关闭」的既有行为与用例不受影响。
+
+回归：`tests/manor/test_manor.gd` 新增 21 项检查——十扇门紧贴开门（瞄准 + 实际按 F 均须成功）
+以及「有人站在开启弧内仍然阻挡」。全量 `res://tests/run_tests.gd` 为
+`AIRPG_TESTS: 375 checks, 0 failures`（MANOR 93 → 114，INTERACTION 54 保持不变，
+其中「actor in swept volume blocks closing」继续通过）。文档 `docs/interactions.md`
+已补该规则与限制。
+
+未做：只验证了玩家与合成 NPC 两类 actor；未做连续扫掠、门叶推开角色、多人重叠、
+低帧率下的重复触发验收；独立对抗复核待分配。复核重点：靠门连按 F 的开合抖动、
+门叶停下压人时必须仍然报阻挡、以及贴门时反向开门的观感。
+
+顺带发现（本轮未修，属 presentation/character 工作包）：不经启动层、直接实例化
+`manor_play.tscn` 时，`presentation/character/character_hud.gd:138` 会用没有占位符的
+`tr("ui.item_count")` 做 `%` 格式化，报 `not all arguments converted during string formatting`。
+正式启动路径先加载本地化，因此不触发；但裸场景测试会往日志里写 SCRIPT ERROR。
+
+## 庄园 V3 模型替换主场景（2026-10-03）
+
+用户交付《死光庄园_完整建模包_V3_20261003》的 `manor_furnished_v3.blend`，要求把该模型导入
+游戏、替换原有庄园建模场景，并明确先不影响主 game 工作区。工作包 A-MANOR-V3 / 负责人本任务 /
+独立对抗复核待分配；分支 `feature/manor-v3-scene`，独立 worktree `.tools/worktrees/manor-v3`，
+基线 `8b22604c`（与 main 相同）。主工作区本轮零写入，未推送。
+
+改动：新增 `scripts/assets/export_manor_v3.py`（读交付 .blend 导出游戏 GLB，只读源文件并校验
+sha256；V4 起改名 `export_manor.py`，见后一条记录）；`game/presentation/manor/manor.glb` 由新导出替换（86 058 980 字节，5329 视觉对象、
+133 万三角面、77 材质、36 内嵌贴图、60 756 走行碰撞三角面）；Godot 按既有
+`embedded_image_handling=1` 抽取出 36 张 `manor_*_{basecolor,normal}.png` 并入库；删除旧 GLB
+抽取出的 11 张 `manor_Godot_MS_*.png` 及 `.import`（无场景引用）。新增
+`docs/manor-model-import.md` 记录来源、导出取舍、契约与限制。`world.tscn`、走行、交互、
+`imported_door_collision`、房间识别、NPC、物品与本地化均未改动。
+
+契约保持：十个门铰链名、`ManorWalkCollision-colonly`、`-colonly` 走行网格与三条坡道、
+Blender `(x,y,z) -> Godot (x,z,-y)` 坐标映射、门把手不进视觉与走行网格（ADR 0008）。
+作者灯光、相机、平面标注、屋顶源集合未进入游戏 GLB。
+
+验证（固定引擎 4.7.2.stable.official.ed1daf0bf，均在 worktree 内）：架构检查 128 个源/场景
+文件通过、3 项负向用例通过；`--editor --import` 退出码 0（12.5 s，39.8 MiB
+`manor.glb-*.scn`）；`res://tests/run_tests.gd` 为 `AIRPG_TESTS: 354 checks, 0 failures`
+（BASE 95 / ARCHIVE 62 / MANOR 93 / NPC_RIG 12 / CHARACTER 38 / INTERACTION 54），
+MANOR 与 INTERACTION 套件实例化真实 `manor_play.tscn` 并打印 `AIRPG_STRUCTURE_WALK_READY`；
+`--quit-after 5` 出现 `AIRPG_BOOT_READY`。真实窗口（RTX 4060 / OpenGL 兼容）用
+`tests/manor/capture_main.gd` 截取走廊视图，模型、光照、HUD、房门与提示均正常；
+导出的 GLB 回导 Blender 渲染与交付包 `preview_overview.png` 外观一致。
+
+`./scripts/verify.ps1` 未原样跑通：import 步骤因本机既有的
+`ERROR: Failed to read the root certificate store.`（`os_windows.cpp:2582`）触发其错误输出
+判定而中止。该行与本仓库内容无关——只有 `project.godot` 的空工程跑同样的导入会复现同一行；
+本轮按既有做法用逻辑等价驱动执行三步（相同参数、错误正则与完成标记，仅登记该环境行），
+未放宽其他判定。另需记录一次事故：第一轮验证时 import 曾出现一个 Godot 进程卡死
+（单线程空转、日志被独占、15 分钟无写入）；会话中断未终止后台作业，残留进程被强制结束后
+删除 `game/.godot` 重新导入即恢复正常，可重复。重跑前请先确认无残留 Godot 进程。
+
+未实现/待复核：未做 LOD、合批、显存与帧率验收，5244 个网格实例的绘制调用是本轮导入的
+主要性能风险；家具、道具、墙面与庭院装饰无碰撞，室外新增石路不在走行网格内；未做导出包、
+低配机器与不同 DPI 验收；独立对抗复核待分配。复核重点：门净空与楼梯净空在新家具布局下是否
+仍然成立、侧门出生点到门廊的实际走行、以及 5000+ 节点场景的加载与帧率。
+
 ## 死光 UI 合并 PR：轻量 HUD + 调查员手记（2026-10-03）
 
 用户要求把本地已完成的《死光》UI 工作适配到最新主仓库，并提取一个合并 PR：一是 `D:\AIRPG\AIRPG` 中未提交的探索 HUD 与 E 键手记实现（基于 921556a），二是评审稿提交 `455fe93`（`docs/ui-design/`），三是同一目录随后完成的开始界面封面改版（见下一节记录；该节由封面工作本身撰写，其中的验证数字属于其自身基线）。工作包 U-DEADLIGHT-UI / 负责人本任务 / 独立对抗复核待分配；分支 `feature/deadlight-ui`，基线 `88c9ef0`。
@@ -287,3 +549,11 @@ A1 已完成；下一步从最新 A1 提交分别建立 C1 灰盒、I1 对话 UI
 ## 手记版面可读性修订（2026-10-03）
 
 根据用户反馈放大了手记标题、页签、物品条目、类别、数量、描述和操作文字；左页内容从过大的内边距向外展开，同时将纸张页边线与正文重新对齐。上下内边距加大，避免标题和底部提示贴近纸边。右页物品速写卡片限定宽度、在书页内水平居中，右页正文两侧留白也更均衡。1280×720 的实际 Godot 渲染已复查；临时截图脚本未纳入工程。
+
+## 玩家填写车卡与人物数值页（2026-10-03）
+
+用户确认演示规则：六属性初始 50、共 60 点、单项 30–80；察觉/洞察/交涉共 6 点、单项 0–3。新增独立车卡页，故事档案选《死光》庄园原型后先进入车卡；姓名和职业必填、背景可选。直接键入与 ± 按钮共用应用用例，顶部实时显示剩余点数；确认要求点数全部分配，确认后本次会话锁定，再进入庄园。手记人物页从确认的角色视图显示姓名、职业、六属性、三技能与背景。重置操作有确认弹窗；失败不修改快照或 revision。
+
+新增 `domain/character/creation_rules.gd`、`creation_state.gd`，`application/character/character_creation_service.gd`，`presentation/character/creation_view.gd`、`creation_number_row.gd` 与场景，相关 `.gd.uid` 由 Godot 编辑器导入生成。契约与边界见 ADR 0008 / `docs/contracts.md`。原型 `CharacterState` v1 物品/生命/理智保持原状；车卡只在本次运行内存中，返回后重新进入会开启新车卡。属性到 d20 修正值的公式、职业技能范围、正式写盘存档仍待后续工作，不将车卡原值直接用于检定。
+
+验证：Godot `--headless --script res://tests/run_tests.gd` 为 303 checks / 0 failures；PowerShell 7 `scripts/check_architecture.ps1` 为 106 文件通过。测试覆盖预算、边界、失败回滚、深拷贝、revision、确认锁定、输入回填及档案→车卡→庄园数值传递。尚未做真实图形窗口的视觉核对或正式存档验收。

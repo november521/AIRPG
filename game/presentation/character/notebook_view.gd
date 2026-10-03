@@ -1,6 +1,7 @@
 extends RefCounted
 ## Builds the investigator notebook and exploration HUD nodes for character_hud.gd.
 
+const CharacterPage = preload("res://presentation/character/notebook_character_page.gd")
 const NotebookIcon = preload("res://presentation/character/notebook_icon.gd")
 const ItemSketch = preload("res://presentation/character/notebook_item_sketch.gd")
 const PaperShader = preload("res://presentation/character/notebook_paper.gdshader")
@@ -172,11 +173,15 @@ static func build_notebook(parent: Control, callbacks: Dictionary) -> Dictionary
 	scroll.add_child(list)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var other_pages: Array[Control] = []
-	for key: String in ["ui.notebook.clues_pending", "ui.notebook.people_pending"]:
-		var empty := label(left, _t(key), 30, MUTED, font)
-		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		other_pages.append(empty)
+	var clues_empty := label(left, _t("ui.notebook.clues_pending"), 30, MUTED, font)
+	clues_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	clues_empty.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	other_pages.append(clues_empty)
+	# 第三个页签（人物）显示车卡确认后的只读数值页；未确认字段显示「待导入」。
+	var character_page: Control = CharacterPage.new()
+	left.add_child(character_page)
+	character_page.configure(font)
+	other_pages.append(character_page)
 	var spine := ColorRect.new()
 	pages.add_child(spine)
 	spine.color = Color(0.44, 0.34, 0.23)
@@ -219,6 +224,7 @@ static func build_notebook(parent: Control, callbacks: Dictionary) -> Dictionary
 	return {
 		"panel": panel, "dimmer": dimmer, "font": font, "list": list, "item_page": item_page,
 		"other_pages": other_pages, "tabs": tabs, "name": name, "count": count,
+		"character_page": character_page,
 		"description": description, "status": status, "sketch": sketch,
 		"hold": hold, "use_held": use_held, "use": use, "discard": discard,
 	}
