@@ -21,6 +21,7 @@ const F1UseCaseTests = preload("res://tests/f1/test_f1_use_case.gd")
 const I1BehaviorTests = preload("res://tests/i1/test_dialogue_view_behavior.gd")
 const I1LifecycleTests = preload("res://tests/i1/test_dialogue_view_lifecycle.gd")
 const NpcAiTests = preload("res://tests/npc_ai/test_npc_ai_pipeline.gd")
+const NpcContentTests = preload("res://tests/npc_ai/test_npc_content.gd")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -93,6 +94,7 @@ func _run() -> void:
 	print("AIRPG_F1_TESTS: %d checks" % (_checks - before))
 	before = _checks
 	NpcAiTests.new().run(_check)
+	NpcContentTests.new().run(_check)
 	print("AIRPG_NPC_AI_TESTS: %d checks" % (_checks - before))
 	before = _checks
 	var i1_host := Control.new()

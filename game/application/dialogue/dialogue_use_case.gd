@@ -39,6 +39,7 @@ var _facts: Array[Dictionary] = []
 var _known_ids: Array[String] = []
 var _action_catalog: Object = null
 var _speakers: Dictionary = {}
+var _reply_policies: Dictionary = {}
 var _action_sink: Object = null
 var _registry: Registry = null
 var _speaker_id: String = ""
@@ -67,6 +68,7 @@ static func create(config: Variant) -> RefCounted:
 	instance._known_ids = Facts.known_ids(facts.value)
 	instance._action_catalog = config.action_catalog
 	instance._speakers = checked.value
+	instance._reply_policies = config.get("reply_policies", {})
 	instance._action_sink = config.get("action_sink")
 	instance._registry = registry.value
 	instance._provider.completed.connect(instance._on_completed)
@@ -200,7 +202,8 @@ func _on_completed(request_id: String, response: Dictionary) -> void:
 		return
 	var binding: Dictionary = authorized.value
 	var validated := ReplyValidator.validate(response, binding.speaker_id,
-		_trusted_ids.get(request_id, []), _known_ids, _action_catalog)
+		_trusted_ids.get(request_id, []), _known_ids, _action_catalog,
+		_reply_policies.get(binding.speaker_id, {}))
 	if not validated.ok:
 		_registry.fail(request_id, validated.code)
 		_trusted_ids.erase(request_id)

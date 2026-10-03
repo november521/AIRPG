@@ -65,8 +65,11 @@ story_archive_placeholders 默认为 false，发布构建忽略启用请求。
 | `ExplorationContract` | move(axis)、interact(target_id)、investigate()、candidate(...) | 只表达玩家意图和互动候选；不计算检定、不修改剧情状态 |
 | `DialogueViewContract` | status(...)、verified_reply(...)、player_text(...)、option_selection(...) | 玩家输入原样保留；只有 `verified_reply` 可作为模型台词进入 UI |
 | `ModelTransportContract` | request(id, filtered_context)、is_stable_error(code) | 上下文深拷贝；供应商错误不得越过稳定错误码边界 |
-| `ChatCompletionRequestBuilder` | 已隔离上下文 → system/user messages | 事实 key 必须解析为审核正文；权威与 untrusted 分区；请求 JSON 深拷贝 |
+| `ChatCompletionRequestBuilder` | 已隔离上下文 → system/user messages（可选按说话人注入人格） | 事实 key 必须解析为审核正文；人格模板占位符必须在构造期全部有值；权威与 untrusted 分区；请求 JSON 深拷贝 |
 | `ChatCompletionGateway` | filtered context → `ModelReply` | 缓存完整 content 后解析；非 stop、无效 JSON 与未知字段失败；不转发 raw delta |
+| `ReplyValidator.validate` | reply / speaker / 允许与已知事实 / 动作目录 / 可选角色输出策略 | 结构、说话人、事实与动作先判；角色策略最后判；策略拒绝一律按可重试失败处理 |
+| `DialogueConfiguration` | 必需 session/state/provider/context/facts/action_catalog/speakers；可选 action_sink、reply_policies | speakers 仍只有 name_key 与 portrait_id；reply_policies 是按说话人索引的受校验策略信封 |
+| `WorldBook.facts_for` | 分层世界书条目 + 本场景说话人列表 → F1 fact 记录 | 只投影有本场受众的条目；hidden/running 层不得携带 NPC 受众；每条条目只产出一条 fact |
 | `NpcActionContract` | proposal(session/request/revision/speaker/scene/action) | 只接受精确字段；禁止坐标；动作先经场景 sink 接受才发布回复 |
 | `ModelConfiguration` | configure(endpoint, model, key) / clear / diagnostics | HTTPS 与非空值校验；诊断不含 Key；本次运行内存配置，不做持久化 |
 
@@ -74,6 +77,10 @@ Result 的公开属性是值协议，不是强不可变类型。领域状态和�
 当前基类端口返回 NOT_IMPLEMENTED；模型默认适配器返回 AI_NOT_CONFIGURED。不得忽略 ok 并继续当成功使用。
 请求和响应业务 DTO 已由 F1 与集成工作包冻结为 v1；它只覆盖工程预览的知识投影、回复校验和语义动作提案，
 不代表自然语言语义已被证明安全，也不代表正式剧情、检定或状态提交已经实现。
+2026-10-03 起，庄园场景的说话人由 `data/ai/npc_characters.zh_CN.json` 的角色卡绑定（艾米利亚与玛丽），
+知识来自 `data/ai/deadlight_worldbook.zh_CN.json` 的分层世界书；两者都先过各自的 JSON Schema，再过领域校验器。
+角色卡的输出策略只覆盖可可靠判定的部分（元层暴露、角色禁用句、气泡长度），信任增减、逆鳞状态变更与
+失谐波纹 UI 仍未实现。世界书的 hidden/running 层只留给未来的 AI 主持人，不进入任何 NPC 上下文。
 
 ## A1 并行接缝
 

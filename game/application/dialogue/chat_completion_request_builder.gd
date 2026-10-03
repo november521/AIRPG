@@ -1,18 +1,27 @@
 extends RefCounted
 ## Converts an already-filtered F1 knowledge projection into a Chat Completions body.
-## It never selects knowledge. Fact text is resolved only from an injected, reviewed map.
+## It never selects knowledge. Fact text is resolved only from an injected, reviewed map,
+## and an NPC persona is rendered only from an injected, reviewed template.
+##
+## The system message is the shared boundary prompt plus, when configured, the speaking
+## NPC's persona. A persona placeholder that has no value fails the request instead of
+## reaching the model unfilled.
 
 const Result = preload("res://shared/result.gd")
+const Ids = preload("res://domain/dialogue/identifiers.gd")
 
 const MAX_PROMPT_LENGTH: int = 24000
+const MAX_PERSONA_LENGTH: int = 8000
+const MAX_PERSONA_VALUES: int = 24
 const CONTEXT_KEYS: Array[String] = ["schema_version", "speaker_id", "scene_id", "topic_id",
 	"trusted_facts", "perceptible", "recent_dialogue", "key_memories", "untrusted",
 	"allowed_actions"]
 
 var _system_prompt: String = ""
 var _fact_texts: Dictionary = {}
+var _personas: Dictionary = {}
 
-static func create(system_prompt: String, fact_texts: Dictionary) -> RefCounted:
+static func create(system_prompt: String, fact_texts: Dictionary, personas: Dictionary = {}) -> RefCounted:
 	if system_prompt.strip_edges().is_empty() or system_prompt.length() > MAX_PROMPT_LENGTH:
 		return Result.failure("MODEL_PROMPT_INVALID")
 	var copied: Dictionary = {}
@@ -22,9 +31,13 @@ static func create(system_prompt: String, fact_texts: Dictionary) -> RefCounted:
 				or fact_texts[key].length() > 4000:
 			return Result.failure("MODEL_PROMPT_INVALID")
 		copied[key] = fact_texts[key]
+	var checked_personas := _valid_personas(personas)
+	if not checked_personas.ok:
+		return checked_personas
 	var instance := new()
 	instance._system_prompt = system_prompt
 	instance._fact_texts = copied
+	instance._personas = checked_personas.value
 	return Result.success(instance)
 
 func build(filtered_context: Variant) -> RefCounted:
@@ -48,16 +61,72 @@ func build(filtered_context: Variant) -> RefCounted:
 		if not resolved.ok:
 			return resolved
 		rendered.untrusted[field] = resolved.value
+	var system_text := _system_message(rendered.speaker_id)
+	if not system_text.ok:
+		return system_text
+	if system_text.value.length() > MAX_PROMPT_LENGTH:
+		return Result.failure("MODEL_PROMPT_INVALID")
 	var encoded := JSON.stringify(rendered)
 	if encoded.is_empty() or encoded.length() > MAX_PROMPT_LENGTH:
 		return Result.failure("MODEL_REQUEST_INVALID")
 	return Result.success({
 		"messages": [
-			{"role": "system", "content": _system_prompt},
+			{"role": "system", "content": system_text.value},
 			{"role": "user", "content": encoded},
 		],
 		"response_format": {"type": "json_object"},
 	})
+
+func _system_message(speaker_id: Variant) -> RefCounted:
+	if _personas.is_empty():
+		return Result.success(_system_prompt)
+	if not speaker_id is String or not _personas.has(speaker_id):
+		return Result.failure("MODEL_PERSONA_UNAVAILABLE", [str(speaker_id)])
+	var persona: Dictionary = _personas[speaker_id]
+	var template: String = persona.template
+	for name: String in persona.values:
+		template = template.replace("{" + name + "}", persona.values[name])
+	if template.contains("{"):
+		return Result.failure("MODEL_PERSONA_INCOMPLETE", [speaker_id])
+	return Result.success(_system_prompt + "\n\n" + template)
+
+static func _valid_personas(value: Variant) -> RefCounted:
+	if not value is Dictionary or value.size() > 64:
+		return Result.failure("MODEL_PROMPT_INVALID")
+	var copied: Dictionary = {}
+	for speaker: Variant in value:
+		if not speaker is String or not Ids.is_valid_id(speaker):
+			return Result.failure("MODEL_PROMPT_INVALID")
+		var persona: Variant = value[speaker]
+		if not persona is Dictionary or persona.size() != 2 or not persona.has("template") \
+				or not persona.has("values") or not persona.template is String \
+				or persona.template.strip_edges().is_empty() \
+				or persona.template.length() > MAX_PERSONA_LENGTH \
+				or not persona.values is Dictionary or persona.values.is_empty() \
+				or persona.values.size() > MAX_PERSONA_VALUES:
+			return Result.failure("MODEL_PROMPT_INVALID")
+		var values: Dictionary = {}
+		for name: Variant in persona.values:
+			if not name is String or not Ids.is_valid_id(name) or not persona.values[name] is String \
+					or persona.values[name].is_empty() or persona.values[name].length() > 200:
+				return Result.failure("MODEL_PROMPT_INVALID")
+			values[name] = persona.values[name]
+		# Fail while constructing, not when a request is built: every placeholder needs text.
+		if not _missing_placeholders(persona.template, values).is_empty():
+			return Result.failure("MODEL_PROMPT_INVALID")
+		copied[speaker] = {"template": persona.template, "values": values}
+	return Result.success(copied)
+
+static func _missing_placeholders(template: String, values: Dictionary) -> Array[String]:
+	var pattern := RegEx.new()
+	if pattern.compile("\\{([a-z0-9_]+)\\}") != OK:
+		return ["placeholder_scan_failed"]
+	var missing: Array[String] = []
+	for found: RegExMatch in pattern.search_all(template):
+		var name: String = found.get_string(1)
+		if not values.has(name) and name not in missing:
+			missing.append(name)
+	return missing
 
 func _resolve_facts(value: Variant) -> RefCounted:
 	if not value is Array:

@@ -1,7 +1,10 @@
 extends SceneTree
 ## Captures a real window screenshot. Modes: settings, archive, dossier, manor,
-## study (stand in front of the study NPC) and study_talk (same, holding its greeting pose).
+## study / study_talk (Emilia in the doctor study) and reception / reception_talk (Mary).
 const MAIN = preload("res://bootstrap/main.tscn")
+## Screenshot mode -> [npc_id, hold greeting pose].
+const NPC_MODES: Dictionary = {"study": ["emilia", false], "study_talk": ["emilia", true],
+	"reception": ["mary", false], "reception_talk": ["mary", true]}
 
 func _initialize() -> void:
 	call_deferred("_capture")
@@ -23,17 +26,18 @@ func _capture() -> void:
 		assert(result.ok)
 		var play = main.get_node("SceneHost").get_child(0)
 		play.player.place_at(Vector3(-4.9, 0.08, -1.64), -PI / 2)
-		if mode == "study" or mode == "study_talk":
-			# Doctor study: stand in front of the wandering study NPC.
+		if NPC_MODES.has(mode):
+			# Stand in front of the named NPC; *_talk modes also hold its greeting pose.
 			await create_timer(0.3).timeout
-			var study: Node3D = null
+			var npc_id: String = NPC_MODES[mode][0]
+			var target: Node3D = null
 			for actor: Node3D in play.npc_actors:
-				if actor.npc_id == "preview_study":
-					study = actor
-			assert(study != null)
-			play.player.place_at(study.position + Vector3(-2.0, 0, 0), -PI / 2)
+				if actor.npc_id == npc_id:
+					target = actor
+			assert(target != null)
+			play.player.place_at(target.position + Vector3(-1.8, 0, 0), -PI / 2)
 			await create_timer(0.3).timeout
-			if mode == "study_talk":
+			if NPC_MODES[mode][1]:
 				play._open_greeting()
 		await create_timer(0.4).timeout
 		if mode == "dossier":

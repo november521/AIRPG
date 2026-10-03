@@ -186,7 +186,7 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	print("AIRPG_STRUCTURE_WALK_TESTS: %d checks, %d failures" % [checks, failures])
 
 func _check_npcs(main: Node3D) -> void:
-	_check(main.npc_actors.size() == 2, "two explicitly synthetic NPC previews")
+	_check(main.npc_actors.size() == 2, "two scene NPCs are assembled")
 	var roster: Array[Dictionary] = main.npc_presence.roster()
 	roster[0].name_key = "changed"
 	_check(main.npc_presence.roster()[0].name_key != "changed", "NPC roster deep copied")
@@ -209,7 +209,7 @@ func _check_npcs(main: Node3D) -> void:
 	await _frames(2)
 	_check(main._find_candidate() == main.npc_actors[0], "nearby facing NPC selected")
 	main._open_greeting()
-	_check(main.npc_hud.is_open() and main.npc_hud._line.text == tr("npc.greeting"), "localized greeting shown")
+	_check(main.npc_hud.is_open() and main.npc_hud._line.text == tr("npc.mary.greeting"), "localized greeting shown")
 	_check(main.npc_presence.paused(id) and main.session.movement() == Vector2.ZERO,
 		"speaking NPC and player pause")
 	_check(not main.npc_presence.begin_greeting(id, 1, true).ok, "repeated greeting rejected")

@@ -7,7 +7,7 @@ const Ids = preload("res://domain/dialogue/identifiers.gd")
 const CODE_INVALID: String = "DIALOGUE_CONFIG_INVALID"
 const REQUIRED: Array[String] = ["session_id", "state_store", "provider", "context_source",
 	"facts", "action_catalog", "speakers"]
-const OPTIONAL: Array[String] = ["action_sink"]
+const OPTIONAL: Array[String] = ["action_sink", "reply_policies"]
 
 static func validate(config: Variant) -> RefCounted:
 	if not config is Dictionary or config.size() < REQUIRED.size() \
@@ -35,7 +35,21 @@ static func validate(config: Variant) -> RefCounted:
 	if config.has("action_sink") and (not config.action_sink is Object \
 			or not config.action_sink.has_method("accept")):
 		return Result.failure(CODE_INVALID)
+	if config.has("reply_policies"):
+		var policies := _policies(config.reply_policies)
+		if not policies.ok:
+			return policies
 	return _speakers(config.speakers)
+
+## Reviewed per-character output policies, keyed by speaker. Each entry is the card's policy
+## dictionary; the reply policy module interprets it, this only checks the envelope.
+static func _policies(value: Variant) -> RefCounted:
+	if not value is Dictionary or value.size() > 64:
+		return Result.failure(CODE_INVALID)
+	for speaker: Variant in value:
+		if not speaker is String or not Ids.is_valid_id(speaker) or not value[speaker] is Dictionary:
+			return Result.failure(CODE_INVALID)
+	return Result.success(value)
 
 static func _speakers(value: Variant) -> RefCounted:
 	if not value is Dictionary or value.is_empty() or value.size() > 64:
