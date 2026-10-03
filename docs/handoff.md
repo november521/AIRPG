@@ -1,5 +1,21 @@
 # 接续记录
 
+## NPC AI 输入 API 合入桌面主工程（2026-10-03）
+
+用户要求把 `codex/npc-ai-input-api` 合入 `C:/Users/31286/Desktop/AIRPG/game` 并一同推送。
+目标分支为桌面主工程当前的 `feature/held-inventory-item`；远端同名分支同步前仍停在基线 e41553fb，
+没有并发提交。先把工作区中已完成且直接相关的撬棍拾取/持有/丢弃展示提交为 8d210a40，随后以
+3d7b9ba5 合并 NPC AI 分支（包含 7544e975 功能提交与 78891f47 API 面板自适应修复）。
+
+合并自动保留 `manor_play.gd` 的两侧改动：运行时掉落物仍使用稳定交互 ID，节点名使用合法下划线；
+同一庄园场景同时装配 AI 对话、语义锚点动作和现有物品交互。未引用的 `mujer_sexy`、
+`npc_preview_rigged` 模型、`output/` 草稿、`docs/worktree-cleanup.md` 与资产构建草稿未纳入提交或推送。
+
+合并后原样运行 `./scripts/verify.ps1 -Godot D:/Godot/Godot_v4.7.2-stable_win64_console.exe`：
+架构检查 197 个源/场景文件与 3 个负向用例通过，资源导入和启动检查通过，聚合
+`AIRPG_TESTS: 987 checks, 0 failures`；其中 NPC-AI 35、G1 138、F1 174、I1 246、交互 69。
+未使用真实 API Key 或外部模型调用，真实 DeepSeek 联调边界不变。
+
 ## 输入 API 模式的 NPC AI 纵向切片（2026-10-03）
 
 用户选择在游戏内输入 API 配置并要求开始实现。工作包 AFGCI-NPC-AI / 负责人本任务 / 独立对抗复核待分配；
