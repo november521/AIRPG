@@ -9,6 +9,7 @@
 | --- | --- |
 | 第一人称移动 / 转向 | WASD / 鼠标 |
 | 慢走 | Shift |
+| 对准近处门扇 / 占位物品后交互 | F |
 | 调查员档案、技能、背包、背景 | E 开关；Esc 关闭 |
 | 释放 / 恢复鼠标 | Esc / 左键 |
 | 回侧门 / 到地窖 | R / B |
@@ -23,7 +24,8 @@
 代码入口：bootstrap/main → 本地启动端口 → bootstrap/manor_play。
 结构资源在 presentation/manor，角色用例在 application/character，原子状态在 domain/character，
 档案 UI 在 presentation/character，合成数据仅在 bootstrap/character_preview。
-返回后重进会新建演示角色；位置复位不改变背包。没有磁盘存档、正式剧情、AI、检定或真实拾取。
+返回后重进会新建演示角色；位置复位不改变背包。ADR 0008 已接入十扇门与三个占位物品拾取，
+操作见 interactions.md；没有磁盘存档、正式剧情、AI、检定或正式道具内容。
 
 此前统一验证与截图结果见 testing.md；本次用户要求不再追加测试。复核重点：
 快速 E/Esc/F1 的焦点与鼠标恢复、楼梯上下行净空、重复/过期物品操作不部分提交。

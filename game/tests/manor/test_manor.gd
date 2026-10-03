@@ -121,8 +121,44 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	main.route_requested.connect(func(route: String) -> void: returned.append(route))
 	main._return_to_archive()
 	_check(returned == ["story_archive"], "return goes to archive")
+	await _check_npcs(main)
 	main.queue_free()
 	await _tree.process_frame
 	print("AIRPG_STRUCTURE_WALK_TESTS: %d checks, %d failures" % [checks, failures])
+
+func _check_npcs(main: Node3D) -> void:
+	_check(main.npc_actors.size() == 2, "two explicitly synthetic NPC previews")
+	var roster: Array[Dictionary] = main.npc_presence.roster()
+	roster[0].name_key = "changed"
+	_check(main.npc_presence.roster()[0].name_key != "changed", "NPC roster deep copied")
+	_check(not main.npc_presence.begin_greeting("missing", 0, true).ok, "unknown NPC rejected")
+	var id: String = main.npc_actors[0].npc_id
+	_check(not main.npc_presence.begin_greeting(id, 3, true).ok, "distant greeting rejected")
+	_check(not main.npc_presence.begin_greeting(id, NAN, true).ok, "invalid greeting distance rejected")
+	_check(not main.npc_presence.begin_greeting(id, 1, false).ok, "occluded greeting rejected")
+	var initial: Vector3 = main.npc_actors[0].position
+	main.npc_actors[0]._target = initial + Vector3(0.7, 0, 0)
+	main.npc_actors[0]._wait = 0
+	await _frames(80)
+	_check(main.npc_actors[0].position.distance_to(initial) > 0.1, "NPC autonomously wanders")
+	for actor: CharacterBody3D in main.npc_actors:
+		_check(actor.is_on_floor() and absf(actor.position.y) < 0.05, "NPC supported by actual manor floor")
+		actor.set_physics_process(false)
+	main.npc_actors[0].position = Vector3(-4.6, 0, 2.0)
+	main.player.place_at(Vector3(-4.6, 0, 3.5), 0)
+	main.camera.rotation.x = 0
+	await _frames(2)
+	_check(main._find_candidate() == main.npc_actors[0], "nearby facing NPC selected")
+	main._open_greeting()
+	_check(main.npc_hud.is_open() and main.npc_hud._line.text == tr("npc.greeting"), "localized greeting shown")
+	_check(main.npc_presence.paused(id) and main.session.movement() == Vector2.ZERO,
+		"speaking NPC and player pause")
+	_check(not main.npc_presence.begin_greeting(id, 1, true).ok, "repeated greeting rejected")
+	main._close_greeting()
+	_check(not main.npc_hud.is_open() and not main.npc_presence.paused(id), "close releases speaker")
+	main.player.place_at(Vector3(-5.0, 0, -1.0), PI)
+	main.npc_actors[0].position = Vector3(-5.0, 0, 0.5)
+	await _frames(2)
+	_check(not main._can_see(main.npc_actors[0]), "actual reception partition blocks greeting")
 	
 

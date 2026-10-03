@@ -1,7 +1,8 @@
 extends RefCounted
-## Prototype-only state; this is not the main game's save format.
+## Prototype-only v2: inventory and acquisition receipts commit together; no disk save format.
 const Result = preload("res://shared/result.gd")
 const LIMIT: int = 999
+const RECEIPT_LIMIT: int = 4096
 var _state: Dictionary = {}
 var _items: Dictionary = {}
 
@@ -12,13 +13,21 @@ func configure(items: Dictionary, initial: Dictionary) -> Result:
 		if not id is String or id.is_empty() or not items[id] is Dictionary:
 			return Result.failure("INVALID_DEFINITION")
 		var item: Dictionary = items[id]
-		if not _keys(item, ["name_key", "description_key", "kind", "healing", "protected"]):
+		if not _keys(item, ["name_key", "description_key", "kind", "healing", "protected", "equippable", "droppable", "tags", "world_scene", "held_scene", "stackable", "max_stack", "weight"]):
 			return Result.failure("INVALID_DEFINITION")
 		if not item.name_key is String or not item.description_key is String:
 			return Result.failure("INVALID_DEFINITION")
 		if item.name_key.is_empty() or item.description_key.is_empty():
 			return Result.failure("INVALID_DEFINITION")
 		if item.kind not in ["consumable", "tool", "key"] or not item.protected is bool:
+			return Result.failure("INVALID_DEFINITION")
+		if not item.equippable is bool or not item.droppable is bool or not item.tags is Array:
+			return Result.failure("INVALID_DEFINITION")
+		if not item.stackable is bool or not item.max_stack is int or item.max_stack < 1 or not item.weight is float and not item.weight is int:
+			return Result.failure("INVALID_DEFINITION")
+		if item.world_scene != null and not item.world_scene is PackedScene:
+			return Result.failure("INVALID_DEFINITION")
+		if item.held_scene != null and not item.held_scene is PackedScene:
 			return Result.failure("INVALID_DEFINITION")
 		if not item.healing is int or item.healing < 0 or item.healing > LIMIT:
 			return Result.failure("INVALID_DEFINITION")
@@ -48,6 +57,9 @@ func commit(expected_revision: int, candidate: Dictionary) -> Result:
 		return Result.failure("INVALID_STATE")
 	if candidate.hp_max != _state.hp_max or candidate.sanity_max != _state.sanity_max:
 		return Result.failure("INVALID_STATE")
+	for source_id: String in _state.pickup_receipts:
+		if not candidate.pickup_receipts.has(source_id):
+			return Result.failure("INVALID_STATE")
 	if candidate == _state:
 		return Result.failure("NO_CHANGE")
 	var next: Dictionary = candidate.duplicate(true)
@@ -56,12 +68,12 @@ func commit(expected_revision: int, candidate: Dictionary) -> Result:
 	return Result.success(snapshot())
 
 func _valid(value: Dictionary) -> bool:
-	if not _keys(value, ["schema_version", "revision", "hp", "hp_max", "sanity", "sanity_max", "inventory"]):
+	if not _keys(value, ["schema_version", "revision", "hp", "hp_max", "sanity", "sanity_max", "inventory", "pickup_receipts"]):
 		return false
 	for key: String in ["schema_version", "revision", "hp", "hp_max", "sanity", "sanity_max"]:
 		if not value[key] is int:
 			return false
-	if value.schema_version != 1 or value.revision < 0:
+	if value.schema_version != 2 or value.revision < 0:
 		return false
 	if value.hp_max < 1 or value.hp_max > LIMIT or value.sanity_max < 1 or value.sanity_max > LIMIT:
 		return false
@@ -75,7 +87,19 @@ func _valid(value: Dictionary) -> bool:
 		var count: Variant = value.inventory[id]
 		if not count is int or count < 1 or count > LIMIT:
 			return false
+	if not value.pickup_receipts is Dictionary or value.pickup_receipts.size() > RECEIPT_LIMIT:
+		return false
+	for source_id: Variant in value.pickup_receipts:
+		if not valid_source_id(source_id) or not value.pickup_receipts[source_id] is bool or value.pickup_receipts[source_id] != true:
+			return false
 	return true
+
+static func valid_source_id(value: Variant) -> bool:
+	if not value is String or value.is_empty() or value.length() > 128:
+		return false
+	var pattern := RegEx.new()
+	pattern.compile("^[a-z][a-z0-9_.]*$")
+	return pattern.search(value) != null
 
 func _keys(value: Dictionary, keys: Array) -> bool:
 	if value.size() != keys.size():

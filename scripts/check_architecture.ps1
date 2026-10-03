@@ -7,7 +7,8 @@ $allowed = @{
   application = @('application', 'domain', 'shared')
   infrastructure = @('infrastructure', 'application', 'domain', 'shared')
   presentation = @('presentation', 'application', 'shared')
-  bootstrap = @('bootstrap', 'presentation', 'infrastructure', 'application', 'domain', 'shared', 'data')
+  items = @('items', 'presentation', 'application', 'domain', 'shared')
+  bootstrap = @('bootstrap', 'presentation', 'infrastructure', 'application', 'domain', 'shared', 'data', 'items')
   tests = @('tests', 'bootstrap', 'presentation', 'infrastructure', 'application', 'domain', 'shared', 'data')
 }
 $errors = [Collections.Generic.List[string]]::new()

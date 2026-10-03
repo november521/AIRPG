@@ -1,5 +1,19 @@
 # 契约与版本
 
+## 庄园预设交互 v1 / 角色原型内存 v2（2026-10-02）
+
+ADR 0008 新增作用域内 InteractionService：register_target(id, handler) 在启用前登记，随后注册表封闭；
+refresh_focus/read_focus 提供深拷贝提示，interact(target_id, expected_revision) 重新查询物理目标后执行。
+Handler 的 read/execute/dispose 协议用于独立类型；不改变 A1 ExplorationContract 意图 v1。
+InteractionProbe.observe 返回 Result({target_id, distance})，表示准星首个无穿墙命中；
+DoorClearance.is_clear(from_open, to_open) 为切换前 actor 净空检查。UI 不提供距离/可用性作为执行授权。
+禁用、退出、执行重入、错误目标、超距和过期版本均拒绝；失败不提交，成功后通知展示刷新。
+
+PickupInventory.read_pickup(source_id) 返回 {revision, claimed}；claim_pickup(source_id, item_id, quantity, revision)
+一次提交背包与来源领取回执。CharacterService 是本轮实现。原型 CharacterState 升为内存 schema_version=2，
+新增 pickup_receipts 字典：稳定来源 ID → true，普通事务不可移除，演示重置保留；不成为正式存档 Schema。
+消费者与无磁盘迁移说明见 ADR 0008；旧版/未知格式拒绝，原型会话重新构建即可重置。
+
 ## 庄园原型接入（2026-10-02）
 
 ADR 0007 将独立庄园与角色原型接入主工程，未变更正式内容、故事状态或存档格式。

@@ -2,17 +2,35 @@ extends RefCounted
 ## Synthetic fixture, never an official investigator or gameplay formula.
 const State = preload("res://domain/character/character_state.gd")
 const Service = preload("res://application/character/character_service.gd")
+const Crowbar = preload("res://items/data/crowbar.tres")
+const WorldItem = preload("res://items/world/world_item.tscn")
+const HeldItem = preload("res://items/held/crowbar_held.tscn")
+
+static func _definition(name_key: String, description_key: String, kind: String, equippable: bool, droppable: bool, tags: Array[StringName], healing: int = 0) -> Dictionary:
+	return {"name_key": name_key, "description_key": description_key, "kind": kind, "healing": healing,
+		"protected": not droppable, "equippable": equippable, "droppable": droppable, "tags": tags,
+		"world_scene": WorldItem, "held_scene": HeldItem if equippable else null,
+		"stackable": true, "max_stack": 999, "weight": 0.0}
+
+static func _crowbar_definition() -> Dictionary:
+	var value: Dictionary = Crowbar.to_runtime_view()
+	value["kind"] = "tool"
+	value["healing"] = 0
+	value["protected"] = false
+	value.erase("id")
+	return value
 
 static func build() -> Service:
 	var state := State.new()
 	var result = state.configure({
-		"demo_bandage": {"name_key": "item.bandage", "description_key": "item.bandage.desc", "kind": "consumable", "healing": 15, "protected": false},
-		"demo_lamp": {"name_key": "item.lamp", "description_key": "item.lamp.desc", "kind": "tool", "healing": 0, "protected": false},
-		"demo_token": {"name_key": "item.token", "description_key": "item.token.desc", "kind": "key", "healing": 0, "protected": true},
+		"demo_bandage": _definition("item.bandage", "item.bandage.desc", "consumable", false, true, [&"heal"], 15),
+		"demo_lamp": _definition("item.lamp", "item.lamp.desc", "tool", true, true, [&"light_source"]),
+		"demo_token": _definition("item.token", "item.token.desc", "key", true, false, [&"quest_item"]),
+		"crowbar": _crowbar_definition(),
 	}, {
-		"schema_version": 1, "revision": 0, "hp": 70, "hp_max": 100,
+		"schema_version": 2, "revision": 0, "hp": 70, "hp_max": 100,
 		"sanity": 60, "sanity_max": 100,
-		"inventory": {"demo_bandage": 3, "demo_lamp": 1, "demo_token": 1},
+		"inventory": {"demo_bandage": 3, "demo_lamp": 1, "demo_token": 1}, "pickup_receipts": {},
 	})
 	assert(result.ok, "Invalid character preview fixture")
 	return Service.new(state, {

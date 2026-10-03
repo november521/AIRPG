@@ -6,6 +6,8 @@ func configure() -> void:
 		"walk_left": KEY_A, "walk_right": KEY_D,
 		"walk_forward": KEY_W, "walk_back": KEY_S,
 		"walk_reset": KEY_R, "walk_cellar": KEY_B, "walk_slow": KEY_SHIFT,
+		"walk_talk": KEY_F,
+		"walk_interact": KEY_F,
 	}
 	for action: String in bindings:
 		if not InputMap.has_action(action):
@@ -64,3 +66,9 @@ func escape_pressed(event: InputEvent) -> bool:
 
 func return_requested(event: InputEvent) -> bool:
 	return event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_F1
+
+func talk_pressed(event: InputEvent) -> bool:
+	return event.is_action_pressed("walk_talk") and not event.is_echo()
+
+func interact_pressed(event: InputEvent) -> bool:
+	return event.is_action_pressed("walk_interact") and not event.is_echo()

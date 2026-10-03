@@ -5,6 +5,7 @@ const Widgets = preload("res://presentation/character/archive_widgets.gd")
 const Overview = preload("res://presentation/character/archive_overview.gd")
 signal panel_changed(open: bool)
 signal return_requested()
+signal item_dropped(item_id: String)
 var _service: Service
 var _revision: int = 0
 var _selected: String = ""
@@ -18,6 +19,8 @@ var _items: ItemList
 var _description: Label
 var _status: Label
 var _use: Button
+var _hold: Button
+var _use_held: Button
 var _discard: Button
 var _tabs: TabContainer
 var _overview := Overview.new()
@@ -134,6 +137,8 @@ func _build_inventory(parent: Control) -> void:
 	_description = Widgets.text(detail, "")
 	var actions := HBoxContainer.new()
 	detail.add_child(actions)
+	_hold = Widgets.button(actions, tr("hud.hold"), _toggle_held)
+	_use_held = Widgets.button(actions, tr("hud.use_held"), _use_held_item)
 	_use = Widgets.button(actions, tr("hud.use"), _use_selected)
 	_discard = Widgets.button(actions, tr("hud.discard"), _discard_selected)
 
@@ -166,17 +171,39 @@ func _update_selection(view: Dictionary) -> void:
 	_discard.disabled = _selected.is_empty()
 	if _selected.is_empty():
 		_description.text = tr("hud.empty")
+		_hold.disabled = true
+		_use_held.disabled = true
+		_use.disabled = true
+		_discard.disabled = true
 		return
 	var item: Dictionary = view.definitions[_selected]
-	_description.text = tr("dossier.item_description") % [tr(item.name_key), view.inventory[_selected], tr(item.description_key)]
+	var held_suffix: String = "\n" + tr("hud.held_item") if view.held_item == _selected else ""
+	_description.text = tr("dossier.item_description") % [tr(item.name_key), view.inventory[_selected], tr(item.description_key)] + held_suffix
+	_hold.text = tr("hud.unequip") if view.held_item == _selected else tr("hud.equip")
+	_hold.disabled = not item.equippable
+	_use_held.disabled = view.held_item.is_empty()
 	_use.disabled = item.kind != "consumable"
-	_discard.disabled = item.protected
+	_discard.disabled = not item.droppable
 
 func _use_selected() -> void:
 	_show_result(_service.use_item(_selected, _revision))
 
+func _toggle_held() -> void:
+	var view: Dictionary = _service.read_character()
+	if view.held_item == _selected:
+		_show_result(_service.unequip_item())
+	else:
+		_show_result(_service.equip_item(_selected))
+
+func _use_held_item() -> void:
+	_show_result(_service.use_held_item(_revision))
+
 func _discard_selected() -> void:
-	_show_result(_service.discard_item(_selected, _revision))
+	var dropped_item_id: String = _selected
+	var result: Result = _service.drop_item(dropped_item_id, _revision)
+	_show_result(result)
+	if result.ok:
+		item_dropped.emit(dropped_item_id)
 
 func _preview(action: String) -> void:
 	_show_result(_service.preview_action(action, _revision))

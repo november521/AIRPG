@@ -1,22 +1,33 @@
-; Edit settings through Godot where practical. Engine pin: ../engine-version.txt.
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
 
 [application]
+
 config/name="AIRPG"
 run/main_scene="res://bootstrap/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
+
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 
+[internationalization]
+
+locale/fallback="zh_CN"
+
 [rendering]
+
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.045, 0.06, 0.075, 1)
-
-[internationalization]
-locale/fallback="zh_CN"

@@ -59,6 +59,7 @@ func run(verify: Callable = Callable()) -> Dictionary:
 	var initial: Dictionary = other.read_character()
 	initial.erase("profile")
 	initial.erase("definitions")
+	initial.erase("held_item")
 	_check(state.configure(other.read_character().definitions, initial).ok, "domain configure")
 	var candidate: Dictionary = state.snapshot()
 	candidate.hp = 85
@@ -78,7 +79,7 @@ func run(verify: Callable = Callable()) -> Dictionary:
 	candidate.inventory.unknown = 1
 	_check(not state.commit(0, candidate).ok, "unknown item ID rejected")
 	candidate = state.snapshot()
-	candidate.schema_version = 2
+	candidate.schema_version = 99
 	_check(not state.commit(0, candidate).ok, "unknown state version rejected")
 	candidate = state.snapshot()
 	candidate.unexpected = 1
@@ -102,4 +103,3 @@ func run(verify: Callable = Callable()) -> Dictionary:
 	_check(overflow.read_character().hp == 0, "damage bounded at zero")
 	print("AIRPG_CHARACTER_TESTS: %d checks, %d failures" % [checks, failures])
 	return {"checks": checks, "failures": failures}
-

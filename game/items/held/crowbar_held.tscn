@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Material"]
+albedo_color = Color(0.24, 0.78, 0.57, 1)
+metallic = 0.55
+roughness = 0.32
+
+[sub_resource type="BoxMesh" id="Mesh"]
+material = SubResource("Material")
+size = Vector3(0.3, 0.3, 0.3)
+
+[node name="CrowbarHeld" type="MeshInstance3D"]
+mesh = SubResource("Mesh")
+position = Vector3(0.22, -0.28, -0.48)

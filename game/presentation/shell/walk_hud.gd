@@ -14,3 +14,6 @@ func show_location(point: Vector3, active: bool) -> void:
 		_status.text = tr("walk.cellar")
 	else:
 		_status.text = tr("walk.outside") if point.y < -0.1 else tr("walk.inside")
+
+func show_ui_state(text_key: String) -> void:
+	_status.text = tr(text_key)

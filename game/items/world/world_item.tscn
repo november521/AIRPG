@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://items/world/world_item.gd" id="1_world"]
+[sub_resource type="StandardMaterial3D" id="Material"]
+albedo_color = Color(0.24, 0.78, 0.57, 1)
+emission = Color(0.08, 0.23, 0.14, 1)
+[sub_resource type="BoxMesh" id="Mesh"]
+material = SubResource("Material")
+size = Vector3(0.35, 0.35, 0.35)
+[sub_resource type="BoxShape3D" id="Shape"]
+size = Vector3(0.42, 0.42, 0.42)
+
+[node name="WorldItem" type="Node3D"]
+script = ExtResource("1_world")
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh")
+[node name="Target" type="StaticBody3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+[node name="Shape" type="CollisionShape3D" parent="Target"]
+shape = SubResource("Shape")
+[node name="Name" type="Label3D" parent="."]
+position = Vector3(0, 0.4, 0)
+billboard = 1
+font_size = 36
+pixel_size = 0.003
+outline_size = 8
