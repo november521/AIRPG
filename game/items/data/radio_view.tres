@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/resources/item_data.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://items/world/radio_inspect.tscn" id="2_world"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"radio"
+display_name_key = "item.radio"
+description_key = "item.radio.desc"
+world_scene = ExtResource("2_world")
+stackable = false
+max_stack = 1
+equippable = false
+droppable = false
+weight = 3.0
+tags = [&"appliance"]

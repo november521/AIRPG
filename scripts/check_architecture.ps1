@@ -1,11 +1,14 @@
 param([string]$Root = (Split-Path -Parent $PSScriptRoot))
 $ErrorActionPreference = 'Stop'
 $game = Join-Path $Root 'game'
+# `audio` is a data directory of imported CC0 clips, not a layer: it holds no source of its own, and
+# only the audio adapter is allowed to name a file inside it. Everything else still goes through the
+# semantic audio port, so no other layer gains a dependency here.
 $allowed = @{
   shared = @('shared')
   domain = @('domain', 'shared')
   application = @('application', 'domain', 'shared')
-  infrastructure = @('infrastructure', 'application', 'domain', 'shared')
+  infrastructure = @('infrastructure', 'application', 'domain', 'shared', 'audio')
   presentation = @('presentation', 'application', 'shared')
   items = @('items', 'presentation', 'application', 'domain', 'shared')
   bootstrap = @('bootstrap', 'presentation', 'infrastructure', 'application', 'domain', 'shared', 'data', 'items')

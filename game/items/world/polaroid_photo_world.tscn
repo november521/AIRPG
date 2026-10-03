@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://items/world/world_item.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://items/models/polaroid_photo.glb" id="2_model"]
+
+[sub_resource type="BoxShape3D" id="Shape"]
+size = Vector3(0.18, 0.1, 0.2)
+
+[node name="PolaroidPhotoWorld" type="Node3D"]
+script = ExtResource("1_world")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+transform = Transform3D(-0.007699, -0.006798, 0.007124, -0.002937, 0.010217, 0.006575, -0.009399, 0.002376, -0.007891, 0.022659, -0.060068, -0.04431)
+
+[node name="Target" type="StaticBody3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Target"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+shape = SubResource("Shape")
+
+[node name="Name" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0)
+billboard = 1
+font_size = 36
+pixel_size = 0.003
+outline_size = 8

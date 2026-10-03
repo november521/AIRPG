@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://items/models/electrical_tape.glb" id="1_model"]
+
+[node name="ElectricalTapeHeld" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, -0.15, -0.3)
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+transform = Transform3D(0.927184, 0.330758, -0.175867, 0, 0.469472, 0.882948, 0.374607, -0.818655, 0.435286, 0.000178, 0.000253, -0.000441)

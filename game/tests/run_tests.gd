@@ -11,6 +11,7 @@ const StoryArchive = preload("res://tests/story_archive/test_story_archive.gd")
 const ManorTests = preload("res://tests/manor/test_manor.gd")
 const NpcRigTests = preload("res://tests/manor/npc_animation_tests.gd")
 const CharacterTests = preload("res://tests/manor/character_tests.gd")
+const CreationTests = preload("res://tests/manor/creation_tests.gd")
 const InteractionTests = preload("res://tests/interactions/test_interactions.gd")
 const InteractionSceneTests = preload("res://tests/interactions/test_scene_interactions.gd")
 const G1Tests = preload("res://tests/g1/test_g1_suite.gd")
@@ -22,11 +23,21 @@ const I1BehaviorTests = preload("res://tests/i1/test_dialogue_view_behavior.gd")
 const I1LifecycleTests = preload("res://tests/i1/test_dialogue_view_lifecycle.gd")
 const NpcAiTests = preload("res://tests/npc_ai/test_npc_ai_pipeline.gd")
 const NpcContentTests = preload("res://tests/npc_ai/test_npc_content.gd")
+const AudioTests = preload("res://tests/audio/test_audio.gd")
 
 var _checks: int = 0
 var _failures: Array[String] = []
+## Optional development filter, e.g. `--script tests/run_tests.gd -- interaction` (prefix it with
+## the engine's res scheme when actually running it; the scheme is left out here because the
+## architecture gate scans comments for dependency paths too, and a literal one would read as a
+## self-reference).
+## Empty means the full aggregate below runs exactly as before, markers and counts unchanged.
+var _filter: String = ""
 
 func _initialize() -> void:
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	if not args.is_empty():
+		_filter = args[0].strip_edges().to_lower()
 	call_deferred("_run")
 	call_deferred("_arm_watchdog")
 
@@ -51,6 +62,9 @@ func _check(condition: bool, description: String) -> void:
 		printerr("FAIL: " + description)
 
 func _run() -> void:
+	if not _filter.is_empty():
+		await _run_filtered()
+		return
 	# Feature branches add isolated suites. The integration owner registers suites here once.
 	for suite: Variant in [Foundation, A1Contracts]:
 		suite.new().run(_check)
@@ -118,8 +132,65 @@ func _run() -> void:
 	CharacterTests.new().run(_check)
 	print("AIRPG_CHARACTER_TESTS: %d checks" % (_checks - before))
 	before = _checks
+	CreationTests.new().run(_check, self)
+	print("AIRPG_CREATION_TESTS: %d checks" % (_checks - before))
+	before = _checks
 	InteractionTests.new().run(_check)
 	await InteractionSceneTests.new().run(_check, self)
 	print("AIRPG_INTERACTION_TESTS: %d checks" % (_checks - before))
+	before = _checks
+	await AudioTests.new().run(_check, self)
+	print("AIRPG_AUDIO_TESTS: %d checks" % (_checks - before))
+	print("AIRPG_TESTS: %d checks, %d failures" % [_checks, _failures.size()])
+	quit(0 if _failures.is_empty() else 1)
+
+## Development-only path: run just the suites whose label contains `_filter`, in the same order and
+## with the same per-suite markers as the full aggregate. It never runs unless a filter argument was
+## passed, so the gate's numbers above stay untouched.
+func _wanted(label: String) -> bool:
+	return _filter.is_empty() or label.contains(_filter)
+
+func _run_filtered() -> void:
+	# Boot the real app once. That is what installs localization and the composition root which the
+	# scene suites below assume; without it every HUD string formats a raw key and the run is buried
+	# in formatting errors that would hide a real one. The contract suites run only in the full
+	# aggregate, so this path never prints a base marker with a partial count.
+	var main := MAIN.instantiate()
+	root.add_child(main)
+	await process_frame
+	main.queue_free()
+	await process_frame
+
+	var before: int = 0
+	if _wanted("archive"):
+		before = _checks
+		await StoryArchive.new().run(_check, self)
+		print("AIRPG_ARCHIVE_TESTS: %d checks" % (_checks - before))
+	if _wanted("manor"):
+		before = _checks
+		await ManorTests.new().run(_check, self)
+		print("AIRPG_MANOR_TESTS: %d checks" % (_checks - before))
+	if _wanted("npc"):
+		before = _checks
+		await NpcRigTests.new().run(_check, self)
+		print("AIRPG_NPC_RIG_TESTS: %d checks" % (_checks - before))
+	if _wanted("character"):
+		CharacterTests.new().run(_check)
+	if _wanted("creation"):
+		before = _checks
+		CreationTests.new().run(_check, self)
+		print("AIRPG_CREATION_TESTS: %d checks" % (_checks - before))
+	if _wanted("interaction"):
+		before = _checks
+		InteractionTests.new().run(_check)
+		await InteractionSceneTests.new().run(_check, self)
+		print("AIRPG_INTERACTION_TESTS: %d checks" % (_checks - before))
+	# The audio suite runs with the interaction suite as well as on its own: the acceptance command
+	# for this round is the interaction filter, and it must exercise the new wiring.
+	if _wanted("interaction") or _wanted("audio"):
+		before = _checks
+		await AudioTests.new().run(_check, self)
+		print("AIRPG_AUDIO_TESTS: %d checks" % (_checks - before))
+	print("AIRPG_FILTER: %s" % _filter)
 	print("AIRPG_TESTS: %d checks, %d failures" % [_checks, _failures.size()])
 	quit(0 if _failures.is_empty() else 1)

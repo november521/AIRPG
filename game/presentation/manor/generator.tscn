@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://presentation/manor/generator.gd" id="1_view"]
+[ext_resource type="PackedScene" path="res://presentation/manor/generator.glb" id="2_model"]
+
+[sub_resource type="BoxShape3D" id="Shape"]
+size = Vector3(1.55, 2.6, 4.67)
+
+[node name="Generator" type="Node3D"]
+script = ExtResource("1_view")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+
+[node name="Body" type="StaticBody3D" parent="."]
+collision_layer = 9
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.266, 0)
+shape = SubResource("Shape")
+
+[node name="Running" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 2.15, 0.95)
+visible = false
+light_color = Color(0.55, 0.95, 0.62, 1)
+light_energy = 1.4
+omni_range = 3.5

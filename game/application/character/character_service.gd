@@ -20,9 +20,25 @@ func read_character() -> Dictionary:
 	view["held_item"] = _held_item
 	return view
 
+## 车卡确认后把档案写进只读 profile；只影响展示，不改领域状态。
+func apply_created_profile(creation: Dictionary) -> Result:
+	if not creation.get("locked", false):
+		return Result.failure("INVALID_STATE")
+	_profile["name"] = creation.name
+	_profile["role"] = creation.role
+	_profile["attributes"] = creation.attributes.duplicate(true)
+	_profile["skills"] = creation.skills.duplicate(true)
+	_profile["background_text"] = creation.background
+	changed.emit()
+	return Result.success()
+
 func read_pickup(source_id: String) -> Dictionary:
 	var view: Dictionary = _state.snapshot()
 	return {"revision": view.revision, "claimed": view.pickup_receipts.has(source_id)}
+
+## Read-only side of the pickup port: a container asks what the player carries before it opens.
+func holds(item_id: String) -> bool:
+	return _state.snapshot().inventory.has(item_id)
 
 func claim_pickup(source_id: String, item_id: String, quantity: int, expected_revision: int) -> Result:
 	var candidate: Dictionary = _state.snapshot()

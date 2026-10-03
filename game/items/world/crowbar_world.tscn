@@ -1,32 +1,28 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://items/world/world_item.gd" id="1_world"]
-[ext_resource type="PackedScene" path="res://items/models/crowbar.glb" id="2_model"]
+[ext_resource type="Script" path="res://items/world/world_item.gd" id="1_c2836"]
+[ext_resource type="PackedScene" path="res://items/models/crowbar.glb" id="2_nl7vb"]
 
-[sub_resource type="BoxShape3D" id="CrowbarShape"]
-size = Vector3(0.24, 0.44, 1.02)
+[sub_resource type="BoxShape3D" id="BoxShape3D_yedkx"]
+size = Vector3(0.98313004, 0.2730226, 0.37583184)
 
-[node name="CrowbarWorld" type="Node3D"]
-script = ExtResource("1_world")
+[node name="CrowbarWorld" type="Node3D" unique_id=133443722]
+script = ExtResource("1_c2836")
 
-[node name="Visual" type="Node3D" parent="."]
-position = Vector3(0, -0.21, 0)
+[node name="Model" type="Node3D" parent="." unique_id=81499380 instance=ExtResource("2_nl7vb")]
+transform = Transform3D(-0.025899816, 0.123937, 0.15481868, -0.123937, 0.11177275, -0.11021103, -0.15481868, -0.11021103, 0.062327433, 0, 0, 0)
 
-[node name="CrowbarModel" parent="Visual" instance=ExtResource("2_model")]
-rotation = Vector3(0.785398, 0, 0)
-scale = Vector3(0.22, 0.22, 0.22)
-
-[node name="Target" type="StaticBody3D" parent="."]
-position = Vector3(0, -0.05, 0)
+[node name="Target" type="StaticBody3D" parent="." unique_id=1922209420]
 collision_layer = 8
 collision_mask = 0
 
-[node name="Shape" type="CollisionShape3D" parent="Target"]
-shape = SubResource("CrowbarShape")
+[node name="Shape" type="CollisionShape3D" parent="Target" unique_id=1544666480]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0029230416, -0.0008549914, 0.0014582127)
+shape = SubResource("BoxShape3D_yedkx")
 
-[node name="Name" type="Label3D" parent="."]
-position = Vector3(0, 0.16, 0)
+[node name="Name" type="Label3D" parent="." unique_id=245225240]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0)
+pixel_size = 0.003
 billboard = 1
 font_size = 36
-pixel_size = 0.003
 outline_size = 8

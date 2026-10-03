@@ -162,3 +162,7 @@ kind 覆盖角色、场景、节点、线索、话题、规则和事实。它目
 5. 消费者使用独立假实现并行开发；真实适配器通过同一契约测试后接入。
 
 所有契约变更都应列出消费者、兼容方式、测试夹具和迁移策略。没有实现的端口不能作为“功能已完成”的证据。
+
+## 演示车卡编辑入口
+
+`application/character/character_creation_service.gd` 提供 `read_creation()`、`set_value(field_id, value, expected_revision)`、`allocate(field_id, delta, expected_revision)`、`set_text(field_id, value, expected_revision)`、`reset(expected_revision)`、`confirm(expected_revision)`。每次成功提交 revision +1，失败返回稳定错误码并保留旧快照；`confirm` 要求姓名、职业及点数全部分配，成功后 `locked=true`。公开视图是深拷贝，含 `remaining.attributes` 与 `remaining.skills`。演示规则数值与迁移边界见 ADR 0009。

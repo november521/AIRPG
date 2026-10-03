@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://items/models/radio.glb" id="1_model"]
+
+[node name="RadioHeld" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, -0.2, -0.62)
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+transform = Transform3D(0.913545, 0.112112, -0.39098, 0, 0.961262, 0.275637, 0.406737, -0.251807, 0.878156, 0, 0, 0)

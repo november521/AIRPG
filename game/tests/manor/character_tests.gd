@@ -53,6 +53,100 @@ func run(verify: Callable = Callable()) -> Dictionary:
 	service.preview_action("reset", 6)
 	after = service.read_character()
 	_check(after.hp == 70 and after.inventory.demo_bandage == 3 and after.revision == 7, "reset keeps monotonic revision")
+	var urn_revision: int = after.revision
+	_check(service.claim_pickup("manor.pickup.silver_urn", "silver_urn", 1, urn_revision).ok, "urn pickup commits")
+	urn_revision = service.read_character().revision
+	_check(service.read_character().inventory.silver_urn == 1, "urn enters the notebook")
+	_check(service.discard_item("silver_urn", urn_revision).code == "ITEM_PROTECTED", "urn is a protected key item")
+	_check(service.drop_item("silver_urn", urn_revision).code == "ITEM_NOT_DROPPABLE", "urn cannot be dropped")
+	_check(service.use_item("silver_urn", urn_revision).code == "NOT_USABLE", "urn has no consume effect")
+	_check(service.hold_item("silver_urn").ok, "urn can be held")
+	_check(service.read_character().held_item == "silver_urn", "urn becomes the held item")
+	_check(service.read_character().revision == urn_revision, "urn refusals and hold do not advance revision")
+	_check(service.read_character().definitions.silver_urn.held_scene != null, "urn exposes a held scene")
+	var diary_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.doctor_diary", "doctor_diary", 1, diary_revision).ok, "diary pickup commits")
+	diary_revision = service.read_character().revision
+	_check(service.read_character().inventory.doctor_diary == 1, "diary enters the notebook")
+	_check(service.discard_item("doctor_diary", diary_revision).code == "ITEM_PROTECTED", "diary is a protected key item")
+	_check(service.drop_item("doctor_diary", diary_revision).code == "ITEM_NOT_DROPPABLE", "diary cannot be dropped")
+	_check(service.use_item("doctor_diary", diary_revision).code == "NOT_USABLE", "diary has no consume effect")
+	_check(service.hold_item("doctor_diary").ok, "diary can be held")
+	_check(service.read_character().definitions.doctor_diary.held_scene != null, "diary exposes a held scene")
+	_check(service.read_character().revision == diary_revision, "diary refusals and hold do not advance revision")
+	var wallet_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.wallet", "wallet", 1, wallet_revision).ok, "wallet pickup commits")
+	wallet_revision = service.read_character().revision
+	_check(service.read_character().inventory.wallet == 1, "wallet enters the notebook")
+	_check(service.discard_item("wallet", wallet_revision).code == "ITEM_PROTECTED", "wallet is a protected key item")
+	_check(service.drop_item("wallet", wallet_revision).code == "ITEM_NOT_DROPPABLE", "wallet cannot be dropped")
+	_check(service.use_item("wallet", wallet_revision).code == "NOT_USABLE", "wallet has no consume effect")
+	_check(service.hold_item("wallet").ok, "wallet can be held")
+	_check(service.read_character().definitions.wallet.held_scene != null, "wallet exposes a held scene")
+	_check(service.read_character().revision == wallet_revision, "wallet refusals and hold do not advance revision")
+	var kerosene_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.kerosene_bottle", "kerosene_bottle", 1, kerosene_revision).ok, "kerosene bottle pickup commits")
+	kerosene_revision = service.read_character().revision
+	_check(service.read_character().inventory.kerosene_bottle == 1, "kerosene bottle enters the notebook")
+	_check(service.use_item("kerosene_bottle", kerosene_revision).code == "NOT_USABLE", "kerosene bottle has no invented fuel effect")
+	_check(service.hold_item("kerosene_bottle").ok, "kerosene bottle can be held")
+	_check(service.read_character().definitions.kerosene_bottle.kind == "tool", "kerosene bottle is classified as a tool")
+	_check(service.read_character().definitions.kerosene_bottle.droppable, "kerosene bottle can be dropped")
+	_check(service.read_character().definitions.kerosene_bottle.held_scene != null, "kerosene bottle exposes a held scene")
+	var key_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.manor_key", "manor_key", 1, key_revision).ok, "manor key pickup commits")
+	key_revision = service.read_character().revision
+	_check(service.read_character().inventory.manor_key == 1, "manor key enters the notebook")
+	_check(service.discard_item("manor_key", key_revision).code == "ITEM_PROTECTED", "manor key is protected")
+	_check(service.use_item("manor_key", key_revision).code == "NOT_USABLE", "manor key has no invented lock binding")
+	_check(service.hold_item("manor_key").ok, "manor key can be held")
+	var fuse_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.fuse", "fuse", 1, fuse_revision).ok, "fuse pickup commits")
+	fuse_revision = service.read_character().revision
+	_check(service.read_character().inventory.fuse == 1, "fuse enters the notebook")
+	_check(service.discard_item("fuse", fuse_revision).code == "ITEM_PROTECTED", "fuse is protected")
+	_check(service.use_item("fuse", fuse_revision).code == "NOT_USABLE", "fuse has no invented repair effect")
+	_check(service.hold_item("fuse").ok, "fuse can be held")
+	var coil_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.copper_wire_coil", "copper_wire_coil", 1, coil_revision).ok, "copper wire coil pickup commits")
+	coil_revision = service.read_character().revision
+	_check(service.read_character().inventory.copper_wire_coil == 1, "copper wire coil enters the notebook")
+	_check(service.discard_item("copper_wire_coil", coil_revision).code == "ITEM_PROTECTED", "copper wire coil is protected")
+	_check(service.drop_item("copper_wire_coil", coil_revision).code == "ITEM_NOT_DROPPABLE", "copper wire coil cannot be dropped")
+	_check(service.use_item("copper_wire_coil", coil_revision).code == "NOT_USABLE", "copper wire coil has no invented wiring effect")
+	_check(service.hold_item("copper_wire_coil").ok, "copper wire coil can be held")
+	_check(service.read_character().definitions.copper_wire_coil.held_scene != null, "copper wire coil exposes a held scene")
+	_check(service.read_character().revision == coil_revision, "copper wire coil refusals and hold do not advance revision")
+	var tape_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.electrical_tape", "electrical_tape", 1, tape_revision).ok, "electrical tape pickup commits")
+	tape_revision = service.read_character().revision
+	_check(service.read_character().inventory.electrical_tape == 1, "electrical tape enters the notebook")
+	_check(service.discard_item("electrical_tape", tape_revision).code == "ITEM_PROTECTED", "electrical tape is a protected electrical part")
+	_check(service.drop_item("electrical_tape", tape_revision).code == "ITEM_NOT_DROPPABLE", "electrical tape cannot be dropped")
+	_check(service.hold_item("electrical_tape").ok, "electrical tape can be held")
+	_check(service.read_character().revision == tape_revision, "electrical tape refusals and hold do not advance revision")
+	var wrench_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.wrench", "wrench", 1, wrench_revision).ok, "wrench pickup commits")
+	wrench_revision = service.read_character().revision
+	_check(service.read_character().definitions.wrench.kind == "tool", "wrench is classified as a tool")
+	_check(service.hold_item("wrench").ok, "wrench can be held")
+	_check(service.drop_item("wrench", wrench_revision).ok, "wrench can be dropped")
+	_check(not service.read_character().inventory.has("wrench"), "dropped wrench leaves the notebook")
+	var lantern_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.lantern", "lantern", 1, lantern_revision).ok, "lantern pickup commits")
+	lantern_revision = service.read_character().revision
+	_check(service.read_character().definitions.lantern.tags.has(&"light_source"), "lantern carries the light_source tag")
+	_check(service.hold_item("lantern").ok, "lantern can be held")
+	_check(service.drop_item("lantern", lantern_revision).ok, "lantern can be dropped")
+	_check(not service.read_character().inventory.has("lantern"), "dropped lantern leaves the notebook")
+	var radio_revision: int = service.read_character().revision
+	_check(service.claim_pickup("manor.pickup.radio", "radio", 1, radio_revision).ok, "radio pickup commits")
+	radio_revision = service.read_character().revision
+	_check(service.read_character().inventory.radio == 1, "radio enters the notebook")
+	_check(service.hold_item("radio").ok, "radio can be held")
+	_check(service.read_character().definitions.radio.held_scene != null, "radio exposes a held scene")
+	_check(service.drop_item("radio", radio_revision).ok, "radio can be dropped")
+	_check(not service.read_character().inventory.has("radio"), "dropped radio leaves the notebook")
 	var other: Service = Preview.build()
 	_check(other.read_character().revision == 0, "sessions isolated")
 	var state := State.new()

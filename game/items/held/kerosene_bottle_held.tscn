@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://items/models/kerosene_bottle.glb" id="1_model"]
+
+[node name="KeroseneBottleHeld" type="Node3D"]
+position = Vector3(0.18, -0.25, -0.48)
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+rotation = Vector3(-0.22, -0.42, 0.08)

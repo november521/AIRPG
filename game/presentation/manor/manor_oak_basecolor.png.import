@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bayxmdq1fs5mf"
-path="res://.godot/imported/manor_oak_basecolor.png-7971141c3254a9ef91e2e69f46721d13.ctex"
+path.s3tc="res://.godot/imported/manor_oak_basecolor.png-7971141c3254a9ef91e2e69f46721d13.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0b20a469fcaee19e7de85b6347c012b8"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://presentation/manor/manor_oak_basecolor.png"
-dest_files=["res://.godot/imported/manor_oak_basecolor.png-7971141c3254a9ef91e2e69f46721d13.ctex"]
+dest_files=["res://.godot/imported/manor_oak_basecolor.png-7971141c3254a9ef91e2e69f46721d13.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0
