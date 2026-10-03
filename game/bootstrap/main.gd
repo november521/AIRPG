@@ -12,11 +12,16 @@ const STORY_ARCHIVE = preload("res://presentation/story_archive/story_archive.ts
 const Manor = preload("res://bootstrap/manor_play.gd")
 const MANOR = preload("res://bootstrap/manor_play.tscn")
 const ManorLauncher = preload("res://infrastructure/navigation/manor_preview_launcher.gd")
+const CreationService = preload("res://application/character/character_creation_service.gd")
+const CreationView = preload("res://presentation/character/creation_view.gd")
+const CREATION = preload("res://presentation/character/creation_view.tscn")
+const Result = preload("res://shared/result.gd")
 
 var _services: Dictionary = {}
 var _router: Router
 var _active_view: Node
 var boot_ready: bool = false
+var _creation_service: CreationService
 
 func _ready() -> void:
 	var messages := JsonFile.read("res://data/localization/zh_CN.json")
@@ -27,7 +32,7 @@ func _ready() -> void:
 	if not localized.ok:
 		_fail(localized.code)
 		return
-	var boot := Composition.build("res://data/config/app.json", ManorLauncher.new(_launch_manor))
+	var boot := Composition.build("res://data/config/app.json", ManorLauncher.new(_launch_creation))
 	if not boot.ok:
 		_fail(boot.code)
 		return
@@ -39,15 +44,17 @@ func _ready() -> void:
 	_router = Router.new()
 	add_child(_router)
 	_router.configure($SceneHost, {"home": HOME, "workspace": WORKSPACE,
-		"story_archive": STORY_ARCHIVE, "manor": MANOR})
+		"story_archive": STORY_ARCHIVE, "creation": CREATION, "manor": MANOR})
 	_navigate("home")
 	boot_ready = true
 	print("AIRPG_BOOT_READY")
 
 func _navigate(route_id: String) -> RefCounted:
+	if route_id == "manor" and (_creation_service == null or not _creation_service.read_creation().locked):
+		return Result.failure("CREATION_REQUIRED")
 	# Returning from the archive only needs a short fade; the menu look must not replay.
 	var resume_menu: bool = route_id == "home" and is_instance_valid(_active_view) \
-		and (_active_view is StoryArchive or _active_view is Manor)
+		and (_active_view is StoryArchive or _active_view is Manor or _active_view is CreationView)
 	var routed := _router.navigate(route_id)
 	if not routed.ok:
 		_fail(routed.code)
@@ -62,6 +69,11 @@ func _navigate(route_id: String) -> RefCounted:
 	_active_view = view
 	if view is StoryArchive:
 		view.configure(_services.story_archive, _services.story_art)
+	elif view is CreationView:
+		view.configure(_creation_service)
+	elif view is Manor:
+		if _creation_service != null and _creation_service.read_creation().locked:
+			view.character_service.apply_created_profile(_creation_service.read_creation())
 	elif not view is Manor:
 		view.configure(_services.session, _services.pack_id, _services.content_version,
 			_services.config.debug_panel and OS.is_debug_build())
@@ -72,8 +84,9 @@ func _navigate(route_id: String) -> RefCounted:
 			view.resume_from_archive()
 	return routed
 
-func _launch_manor() -> RefCounted:
-	return _navigate("manor")
+func _launch_creation() -> RefCounted:
+	_creation_service = CreationService.new()
+	return _navigate("creation")
 
 func _quit_from_menu() -> void:
 	if is_instance_valid(_active_view) and _active_view is StartScreen:

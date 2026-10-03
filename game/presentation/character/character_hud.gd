@@ -32,6 +32,7 @@ var _use_held: Button
 var _use: Button
 var _discard: Button
 var _sketch: Control
+var _character_page: Control
 var _book_font: SystemFont
 func configure(service: Service) -> void:
 	_service = service
@@ -82,6 +83,7 @@ func _build_notebook() -> void:
 	_item_page = nodes.item_page
 	_other_pages = nodes.other_pages
 	_tabs = nodes.tabs
+	_character_page = nodes.character_page
 	_name = nodes.name
 	_count = nodes.count
 	_description = nodes.description
@@ -118,6 +120,7 @@ func _refresh() -> void:
 	if not _selected in _ids:
 		_selected = _ids[0] if not _ids.is_empty() else ""
 	_update_selection(view)
+	_character_page.refresh(view)
 func _choose_item(id: String) -> void:
 	_selected = id
 	_update_selection(_service.read_character())

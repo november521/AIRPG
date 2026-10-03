@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://items/models/wrench.glb" id="1_model"]
+
+[node name="WrenchHeld" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, -0.17, -0.46)
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+transform = Transform3D(0.906308, 0.397131, -0.144544, 0, 0.34202, 0.939693, 0.422618, -0.851651, 0.309976, -0.004299, -0.003702, 0.009219)

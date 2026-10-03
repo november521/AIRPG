@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://items/models/manor_key.glb" id="1_model"]
+
+[node name="ManorKeyHeld" type="Node3D"]
+position = Vector3(0.14, -0.16, -0.34)
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+rotation = Vector3(-0.35, -0.25, 0.35)
