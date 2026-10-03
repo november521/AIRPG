@@ -207,18 +207,18 @@ func _check_npcs(main: Node3D) -> void:
 	main.player.place_at(Vector3(-4.6, 0, 3.5), 0)
 	main.camera.rotation.x = 0
 	await _frames(2)
-	_check(main._find_candidate() == main.npc_actors[0], "nearby facing NPC selected")
+	_check(main._greeting.find_candidate() == main.npc_actors[0], "nearby facing NPC selected")
 	main._open_greeting()
 	_check(main.npc_hud.is_open() and main.npc_hud._line.text == tr("npc.mary.greeting"), "localized greeting shown")
 	_check(main.npc_presence.paused(id) and main.session.movement() == Vector2.ZERO,
 		"speaking NPC and player pause")
 	_check(not main.npc_presence.begin_greeting(id, 1, true).ok, "repeated greeting rejected")
-	main._close_greeting()
+	main._end_greeting()
 	_check(not main.npc_hud.is_open() and not main.npc_presence.paused(id), "close releases speaker")
 	main.player.place_at(Vector3(-5.0, 0, -1.0), PI)
 	main.npc_actors[0].position = Vector3(-5.0, 0, 0.5)
 	await _frames(2)
-	_check(not main._can_see(main.npc_actors[0]), "actual reception partition blocks greeting")
+	_check(not main._greeting.can_see(main.npc_actors[0]), "actual reception partition blocks greeting")
 
 ## Regression for the door-clearance rule. A player resting against a closed door sits 2 mm from
 ## the leaf, inside the sweep margin, so leaning on a door must not veto opening it. A body actually
