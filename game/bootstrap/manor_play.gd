@@ -20,7 +20,7 @@ var npc_hud: NpcHud
 var _candidate: NpcActor
 signal route_requested(route_id: String)
 const SIDE_SPAWN := Vector3(-8.05, -0.39, -1.64)
-const CELLAR_SPAWN := Vector3(-3.4, -2.65, -10.7)
+const CELLAR_SPAWN := Vector3(-3.6, -3.19, -7.4)
 var _controls := WalkInput.new()
 var session := WalkSession.new()
 var character_service = CharacterPreview.build()

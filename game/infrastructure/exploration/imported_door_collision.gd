@@ -1,11 +1,13 @@
 extends RefCounted
-## Removes baked, initially-open door faces from the imported shared walk mesh.
-## This adapter is specific to the manor prototype's exported geometry.
+## Removes baked door faces from the imported shared walk mesh.
+## The delivered V4 walk mesh bakes all ten closed leaves together with their symmetric inset
+## panels, which is why the per-door budgets below are higher than the V2 structure study needed.
+## This adapter stays specific to the manor prototype's exported geometry.
 const Result = preload("res://shared/result.gd")
 const LEAF_PADDING: float = 0.06
 const HANDLE_PADDING: float = 0.02
 const MIN_FACES_PER_DOOR: int = 200
-const MAX_FACES_PER_DOOR: int = 550
+const MAX_FACES_PER_DOOR: int = 900
 
 static func strip(model: Node3D, leaves: Array[MeshInstance3D], handles: Array[MeshInstance3D]) -> Result:
 	if leaves.size() != handles.size() or leaves.is_empty():

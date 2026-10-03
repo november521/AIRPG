@@ -1,5 +1,49 @@
 # 接续记录
 
+## 庄园模型换成 V4 修复版（2026-10-03）
+
+用户给出 `output/manor_v4`，要求用这个模型替换原有模型。工作包 A-MANOR（模型线）/
+负责人本任务 / 独立对抗复核待分配；仍在 `feature/manor-v3-scene` 分支与同一 worktree 上实施，
+用户明确选择「用新的模型」，即游戏常量一起对齐 V4；主工作区未动。
+
+不能直接换文件：V4 交付的 `manor_repaired_v4.glb`（79.8 MiB）没有
+`ManorWalkCollision-colonly`，直接替换会让 `ImportedDoorCollision.strip` 返回
+`MANOR_COLLISION_MISSING`、整个交互装配失败（门、拾取、提示全部消失）。V4 自带的
+`validate_import.gd` 是自己搭 trimesh 碰撞的独立校验，不代表游戏契约满足。因此改为从
+`manor_repaired_v4.blend` 用 `scripts/assets/export_manor.py`（由 `export_manor_v3.py` 改名并
+扩展）重新导出游戏用 GLB。
+
+导出改动：V4 新增集合 `V4_EmptyCellar`、`V4_ConcealedEntrance` 进入视觉；地窖坡道改用交付包
+的 `V4_CellarRamp-colonly`；可撬地板（17 板 + 3 托条）不进入走行网格，改由独立的
+`V4_PryFloorCollision-colonly` 承担碰撞，走行网格在该处留洞，对应 V4 元数据的 `on_open`
+约定；移除 V3 遗留的地窖坡道常量。修掉一个自造缺陷：这块地板碰撞盒的面片绕序反了，
+ConcavePolygonShape 单面碰撞导致角色从顶面掉进去卡在底面，重新导出后正常。
+
+游戏侧同步：`manor_interactions._door` 改为按模型自述姿态绑定——V4 把十扇门叶做成“关闭”
+姿态并携带 `angle_open_deg`（76°/82°），V3 则是“已打开”姿态，因此按元数据是否存在分支，
+开门方向仍由 `_open_yaw_for_player` 按玩家所在侧选择（保留紧贴门可开门的修复）；
+`MAX_FACES_PER_DOOR` 550 → 900（V4 把关闭门叶与内嵌门板一起烘进走行网格，实测每扇
+540–726 面，`MIN` 仍 200）；`CELLAR_SPAWN` → `(-3.6,-3.19,-7.4)`、地窖补给点 →
+`(-2.9,-2.99,-9.5)`、`manor_room_map` 增加按高度判定的坡道区；撬棍世界物品从
+`(-4.3,0.24,0.0)` 移到 `(-3.5,0.24,-1.6)`，因为 V4 的接待室门现在是关闭姿态，原位置会嵌在门叶里
+（该值与其主工作区未提交改动一致）。测试：走行用例先在测试夹具里调用生产剔除适配器，
+再跑穿门与地窖路线；地窖改为「关闭地板挡住楼梯 → 释放地板碰撞 → 坡道上下行 → 新地面承重」。
+
+验证（固定引擎 4.7.2，worktree 内）：架构检查 131 文件 + 3 项负向用例通过（删掉临时诊断后
+128）；`--editor --import` 退出码 0，`manor.glb` 82.1 MiB / 5251 对象 / 130.7 万三角面 /
+61 材质 / 34 贴图 / 69 204 走行碰撞面；`AIRPG_TESTS: 379 checks, 0 failures`
+（BASE 95 / ARCHIVE 62 / MANOR 118 / NPC_RIG 12 / CHARACTER 38 / INTERACTION 54）；
+`--quit-after 5` 出现 `AIRPG_BOOT_READY`；真实窗口截图
+`artifacts/manor_v4/game_hall_v4.png`。抽取贴图按 V4 的 34 张同步，删除 copper 的 2 张残留。
+`./scripts/verify.ps1` 仍只被本机既有的根证书读取失败挡住，未放宽其他判定。
+
+未实现/待复核：**可撬地板只有资产与碰撞，没有撬棍交互**，所以运行时地窖、地窖补给与线索
+暂时不可达（只能 B 键捷径进入），需要独立工作包新增交互类型与失败路径测试；走行网格是
+单一凹多边形，撬开后无法局部还原，将来若要“重新盖上”需要可开关碰撞体；未做 LOD、合批、
+显存与帧率验收，5253 节点与 130 万三角面的绘制调用仍是主要风险；未做导出包、低配与不同
+DPI 验收；独立对抗复核待分配。复核重点：门姿态绑定在 V3/V4 两种模型上的分支、地板碰撞
+开关前后的走行、以及地窖坡道与楼梯净空。
+
 ## 紧贴门开不了门：门净空只挡新增接触（2026-10-03）
 
 用户试玩反馈「紧贴门开不了门」。工作包 C-MI2 / 负责人本任务 / 独立对抗复核待分配，
@@ -40,11 +84,11 @@
 基线 `8b22604c`（与 main 相同）。主工作区本轮零写入，未推送。
 
 改动：新增 `scripts/assets/export_manor_v3.py`（读交付 .blend 导出游戏 GLB，只读源文件并校验
-sha256）；`game/presentation/manor/manor.glb` 由新导出替换（86 058 980 字节，5329 视觉对象、
+sha256；V4 起改名 `export_manor.py`，见后一条记录）；`game/presentation/manor/manor.glb` 由新导出替换（86 058 980 字节，5329 视觉对象、
 133 万三角面、77 材质、36 内嵌贴图、60 756 走行碰撞三角面）；Godot 按既有
 `embedded_image_handling=1` 抽取出 36 张 `manor_*_{basecolor,normal}.png` 并入库；删除旧 GLB
 抽取出的 11 张 `manor_Godot_MS_*.png` 及 `.import`（无场景引用）。新增
-`docs/manor-v3-import.md` 记录来源、导出取舍、契约与限制。`world.tscn`、走行、交互、
+`docs/manor-model-import.md` 记录来源、导出取舍、契约与限制。`world.tscn`、走行、交互、
 `imported_door_collision`、房间识别、NPC、物品与本地化均未改动。
 
 契约保持：十个门铰链名、`ManorWalkCollision-colonly`、`-colonly` 走行网格与三条坡道、

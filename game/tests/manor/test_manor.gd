@@ -5,10 +5,8 @@ const Main = preload("res://bootstrap/manor_play.tscn")
 const WalkSession = preload("res://application/exploration/walk_session.gd")
 const Player = preload("res://presentation/exploration/player.gd")
 const RoomMap = preload("res://presentation/shell/manor_room_map.gd")
-const DOOR_IDS: Array[String] = ["manor.door.side", "manor.door.main", "manor.door.bathroom",
-	"manor.door.doctor_bedroom", "manor.door.doctor_study", "manor.door.emilia_bedroom",
-	"manor.door.emilia_study", "manor.door.kitchen", "manor.door.reception",
-	"manor.door.reception_kitchen"]
+const DoorCollision = preload("res://infrastructure/exploration/imported_door_collision.gd")
+const Interactions = preload("res://bootstrap/manor_interactions.gd")
 var checks: int = 0
 var failures: int = 0
 var _world: Node3D
@@ -53,7 +51,7 @@ func run(verify: Callable, tree: SceneTree) -> void:
 		{"id": "doctor_study", "point": Vector3(4.5, .1, -2.9)},
 		{"id": "bathroom", "point": Vector3(-.7, .1, -11.0)},
 		{"id": "cellar_stairs", "point": Vector3(-5.2, -.7, -10.7)},
-		{"id": "cellar", "point": Vector3(-4.4, -2.7, -10.7)},
+		{"id": "cellar", "point": Vector3(-3.6, -3.2, -7.4)},
 	]
 	for room: Dictionary in rooms:
 		_check(RoomMap.room_id(room.point) == room.id, "room mapping: " + room.id)
@@ -69,6 +67,19 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	_check(_world.find_child("MS_Complete_CrossGable_Roof", true, false) != null, "complete roof visible")
 	_check(_world.find_child("MS_HallMain_Ceiling", true, false) != null, "ceiling retained")
 	_check(_world.find_child("MS_SideEntry_StoneStep_3", true, false) != null, "three side treads retained")
+	# V4 bakes all ten closed leaves into the walk mesh. The game strips them at runtime through the
+	# production adapter, so the traversal checks below run on the state the player actually walks on.
+	var model: Node3D = _world.get_node("Model")
+	var leaves: Array[MeshInstance3D] = []
+	var handles: Array[MeshInstance3D] = []
+	for spec: Dictionary in Interactions.DOORS:
+		var hinge: Node3D = model.find_child(spec.hinge, true, false)
+		leaves.append(null if hinge == null else hinge.find_child("*_SolidTimberLeaf", true, false))
+		handles.append(null if hinge == null else hinge.find_child("*_BrassHandle", true, false))
+	_check(not leaves.has(null) and leaves.size() == Interactions.DOORS.size(),
+		"every bound door leaf exists in the delivered model")
+	var stripped: RefCounted = DoorCollision.strip(model, leaves, handles)
+	_check(stripped.ok, "runtime door strip accepts the delivered walk mesh")
 	await _walk(Vector3(-8.05, -.39, -1.64), -PI / 2, 80)
 	_check(_player.position.x > -5.4 and _player.is_on_floor() and absf(_player.position.y) < .04, "outside to hall through side door and 3 stairs")
 	await _walk(Vector3(-4.9, .08, -1.64), PI / 2, 85)
@@ -93,17 +104,28 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	_check(_player.position.z > -2.96, "solid bedroom partition blocks capsule")
 	await _walk(Vector3(5.4, -.39, 9.25), 0, 70)
 	_check(_player.position.z < 7.4 and _player.position.y > -.04, "front veranda stair ascent")
-	await _walk(Vector3(-5.2, .08, -8.8), 0, 112)
+	# V4 removed the sixteen cellar treads and conceals the new stairwell under removable
+	# floorboards, so the descent only opens once the pry target frees them; the cellar floor is
+	# about half a metre deeper than V3 and the ramp descends northwards.
+	await _walk(Vector3(-5.15, .08, -12.0), 0, 60, Vector2.DOWN)
+	_check(_player.position.z > -11.0 and _player.position.y > -.6, "closed floorboards conceal the cellar stair")
+	var boards: Node3D = _world.find_child("V4_PryFloorCollision", true, false)
+	_check(boards != null, "removable floorboard collision ships as its own body")
+	if boards != null:
+		boards.free()
+	await _frames(3)
+	await _walk(Vector3(-5.15, .08, -12.0), 0, 200, Vector2.DOWN)
 	print("CELLAR_DESCENT: ", _player.position)
-	_check(_player.position.z < -12.0 and _player.position.y < -2.45, "cellar stairs descend with headroom")
-	_session.set_movement(Vector2.DOWN)
-	await _frames(122)
+	_check(_player.position.y < -3.0 and _player.position.z > -8.4, "cellar ramp descends to the new cellar floor")
+	_session.set_movement(Vector2.UP)
+	await _frames(200)
 	_session.stop()
+	await _frames(3)
 	print("CELLAR_ASCENT: ", _player.position)
-	_check(_player.position.z > -9.0 and _player.position.y > -.10, "cellar stairs ascend without snagging")
-	_player.place_at(Vector3(-3.4, -2.65, -10.7), 0)
+	_check(_player.position.z < -11.2 and _player.position.y > -.10, "cellar ramp ascends without snagging")
+	_player.place_at(Vector3(-3.6, -3.19, -7.4), 0)
 	await _frames(30)
-	_check(_player.is_on_floor() and absf(_player.position.y + 2.72) < .04, "cellar floor supports capsule")
+	_check(_player.is_on_floor() and absf(_player.position.y + 3.23) < .06, "cellar floor supports capsule")
 	_world.queue_free()
 	await _tree.process_frame
 	var main := Main.instantiate()
@@ -225,7 +247,8 @@ func _check_flush_doors(main: Node3D) -> void:
 		"body in the opening arc still blocks the sweep (" + arc_result.code + ")")
 	for actor: Node3D in main.npc_actors:
 		actor.position = Vector3(60.0, 0.0, 60.0)
-	for id: String in DOOR_IDS:
+	for spec: Dictionary in Interactions.DOORS:
+		var id: String = spec.id
 		var body: AnimatableBody3D = main.find_child(id.replace(".", "_"), true, false)
 		geometry = _door_geometry(body)
 		leaf = geometry.leaf

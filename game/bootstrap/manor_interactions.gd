@@ -30,9 +30,9 @@ const DOORS: Array[Dictionary] = [
 const PICKUPS: Array[Dictionary] = [
 	{"id": "manor.pickup.hall_bandage", "item": "demo_bandage", "quantity": 2, "name": "item.bandage", "position": Vector3(-4.3, 0.24, -1.6)},
 	{"id": "manor.pickup.reception_lamp", "item": "demo_lamp", "quantity": 1, "name": "item.lamp", "position": Vector3(-4.3, 0.24, 1.6)},
-	{"id": "manor.pickup.cellar_token", "item": "demo_token", "quantity": 1, "name": "item.token", "position": Vector3(-3.2, -2.48, -10.6)},
+	{"id": "manor.pickup.cellar_token", "item": "demo_token", "quantity": 1, "name": "item.token", "position": Vector3(-2.9, -2.99, -9.5)},
 ]
-const CROWBAR_POSITION := Vector3(-4.3, 0.24, 0.0)
+const CROWBAR_POSITION := Vector3(-3.5, 0.24, -1.6)
 
 static func build(world: Node3D, camera: Camera3D, player: CollisionObject3D, inventory: Inventory) -> Result:
 	var handlers: Dictionary = {}
@@ -88,8 +88,16 @@ static func _handle(hinge: Node3D) -> MeshInstance3D:
 static func _door(model: Node3D, spec: Dictionary, player: Node3D) -> Dictionary:
 	var hinge: Node3D = model.find_child(spec.hinge, true, false)
 	var leaf: MeshInstance3D = _leaf(hinge)
+	# Delivered models disagree about the authored pose, so they declare it: V4-and-later carry the
+	# swing angle as extras and ship every leaf closed, while older exports ship the leaf already
+	# open and expect the manifest's closed angle. The swing side still follows the player.
+	var extras: Dictionary = hinge.get_meta("extras", {})
 	var open_yaw: float = hinge.rotation.y
 	var closed_yaw: float = deg_to_rad(spec.closed)
+	if extras.has("angle_open_deg"):
+		closed_yaw = hinge.rotation.y
+		var swing: float = absf(deg_to_rad(float(extras.angle_open_deg)))
+		open_yaw = closed_yaw + swing if swing > 0.0 else closed_yaw + PI / 2.0
 	# Older manor exports may still contain a visual handle.
 	var handle: MeshInstance3D = _handle(hinge)
 	if handle != null:

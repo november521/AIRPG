@@ -1,0 +1,84 @@
+{
+  "source": "C:\\Users\\31286\\Desktop\\AIRPG\\output\\manor_v4\\manor_repaired_v4.blend",
+  "source_sha256": "8528673f573628c45e2d14fce52b1c536c91fcdce15660ea0324fefd7809a6dd",
+  "target": "C:\\Users\\31286\\Desktop\\AIRPG\\.tools\\worktrees\\manor-v3\\artifacts\\manor_v4\\manor.glb",
+  "target_bytes": 85033116,
+  "blender": "5.2.2 LTS",
+  "scene": "Dead Light | Furnished Manor v3",
+  "visual_objects": 5251,
+  "meshes": 5167,
+  "modifiers_applied": true,
+  "collections": [
+    "MS_01_Floors",
+    "MS_02_Walls_Lower",
+    "MS_03_Walls_Upper",
+    "MS_04_Doors",
+    "MS_05_Windows",
+    "MS_06_Porch",
+    "MS_07_Roof",
+    "MS_08_Ceilings",
+    "MS_09_Cellar",
+    "MS_10_Site",
+    "Furniture",
+    "Props",
+    "V3_Architecture",
+    "V3_UpperDecor",
+    "V3_Exterior",
+    "V4_EmptyCellar",
+    "V4_ConcealedEntrance"
+  ],
+  "collision_collections": [
+    "MS_01_Floors",
+    "MS_02_Walls_Lower",
+    "MS_03_Walls_Upper",
+    "MS_04_Doors",
+    "MS_05_Windows",
+    "MS_06_Porch",
+    "MS_08_Ceilings",
+    "MS_09_Cellar",
+    "MS_10_Site",
+    "V4_EmptyCellar"
+  ],
+  "collision_objects": 673,
+  "collision_triangles": 69204,
+  "walk_ramps": 3,
+  "cellar_ramp": "V4_CellarRamp-colonly",
+  "pry_root": "V4_PryFloorboards",
+  "pry_boards": 20,
+  "pry_collision": "V4_PryFloorCollision",
+  "door_hinges": [
+    "MS_SideEntry_Hinge",
+    "MS_MainEntry_Hinge",
+    "MS_Bathroom_Door_Hinge",
+    "MS_DoctorBedroom_Door_Hinge",
+    "MS_DoctorStudy_Door_Hinge",
+    "MS_EmiliaBedroom_Door_Hinge",
+    "MS_EmiliaStudy_Door_Hinge",
+    "MS_Kitchen_Door_Hinge",
+    "MS_Reception_Door_Hinge",
+    "MS_Reception_Kitchen_Door_Hinge"
+  ],
+  "excluded_collections": [
+    "MS_11_Lights_Cameras",
+    "MS_12_Plan_Labels",
+    "MS_13_Roof_Source",
+    "V3_Cameras",
+    "V3_Lighting",
+    "V4_Collision_Optional",
+    "Collection"
+  ],
+  "cellar_floor_godot": {
+    "godot_min": [
+      -6.114,
+      -3.43,
+      -12.8
+    ],
+    "godot_max": [
+      -1.394,
+      -3.23,
+      -5.7
+    ]
+  },
+  "coordinate_mapping": "Blender (x,y,z) -> Godot (x,z,-y)",
+  "source_saved": false
+}

@@ -6,6 +6,9 @@ static func room_id(point: Vector3) -> String:
 	var z: float = point.z
 	if point.y < -1.05:
 		return "cellar"
+	# V4 replaced the cellar treads with a ramp that descends northwards out of the study.
+	if point.y < -0.15 and _inside(x, z, -6.10, -4.20, -11.80, -6.20):
+		return "cellar_stairs"
 	if _inside(x, z, -2.12, 0.76, -12.80, -9.24):
 		return "bathroom"
 	if _inside(x, z, 0.76, 6.16, -12.80, -5.84):
@@ -15,9 +18,7 @@ static func room_id(point: Vector3) -> String:
 	if _inside(x, z, -8.40, -2.12, -8.28, -3.20):
 		return "emilia_bedroom"
 	if _inside(x, z, -6.84, -2.12, -12.80, -8.28):
-		if x <= -5.80 or x >= -4.60 or z >= -9.08 or z <= -12.48:
-			return "emilia_study"
-		return "cellar_stairs"
+		return "emilia_study"
 	if _inside(x, z, -8.40, -2.12, 0.0, 7.80):
 		return "reception"
 	if _inside(x, z, -2.12, 3.32, 0.0, 7.80):
