@@ -5,6 +5,7 @@ const ActionContract = preload("res://application/contracts/npc_action_contract.
 const Builder = preload("res://application/dialogue/chat_completion_request_builder.gd")
 const Gateway = preload("res://infrastructure/ai/chat_completion_gateway.gd")
 const Runtime = preload("res://infrastructure/ai/runtime_model_configuration.gd")
+const CredentialStore = preload("res://infrastructure/ai/local_credential_store.gd")
 const ConnectionService = preload("res://application/ai/model_connection_service.gd")
 const StateStore = preload("res://domain/story/state_store.gd")
 const Actions = preload("res://domain/dialogue/allowed_actions.gd")
@@ -37,9 +38,43 @@ func run(check: Callable) -> void:
 	_builder_and_gateway(check)
 	_prompt_resource(check)
 	_runtime_configuration(check)
+	_local_credentials(check)
 	_settings_panel(check)
 	_action_boundary(check)
 	_full_pipeline(check)
+
+## Remembered credentials: a solo player configures once, the next launch restores it, and no
+## path ever prints or returns the key.
+func _local_credentials(check: Callable) -> void:
+	var path: String = "user://test_ai_credentials.json"
+	var store: RefCounted = CredentialStore.new(path)
+	store.clear()
+	check.call(not store.load_credentials().ok, "NPC-AI: absent credential file reports no store")
+	check.call(store.save_credentials("https://example.invalid/chat/completions", "test-model",
+		"synthetic-secret-never-log").ok, "NPC-AI: credentials are written to the local store")
+	check.call(store.has_stored_credentials(), "NPC-AI: stored credentials are reported present")
+	var loaded: RefCounted = store.load_credentials()
+	check.call(loaded.ok and loaded.value.api_key == "synthetic-secret-never-log",
+		"NPC-AI: stored key round-trips through the local store")
+	var runtime: RefCounted = Runtime.new(CredentialStore.new(path))
+	check.call(runtime.restore().ok and runtime.configured(),
+		"NPC-AI: a fresh runtime restores stored credentials")
+	var serialized: String = JSON.stringify(runtime.diagnostics()) + str(runtime)
+	check.call(not serialized.contains("synthetic-secret-never-log"),
+		"NPC-AI: restored key stays out of diagnostics")
+	check.call(runtime.diagnostics().stored, "NPC-AI: diagnostics report local storage without the key")
+	var reused: RefCounted = ConnectionService.new(Runtime.new(CredentialStore.new(path)))
+	check.call(reused.configure("https://example.invalid/chat/completions", "next-model", "").ok,
+		"NPC-AI: an empty key field reuses the remembered credentials")
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string("{\"schema_version\":1,\"endpoint_url\":\"https://example.invalid\",\"api_key\":\"leak\"}")
+	file.close()
+	check.call(not CredentialStore.new(path).load_credentials().ok,
+		"NPC-AI: a malformed credential file fails closed")
+	check.call(not CredentialStore.new(path).save_credentials("https://example.invalid/\nchat",
+		"test-model", "key").ok, "NPC-AI: control characters are refused by the store")
+	store.clear()
+	check.call(not store.has_stored_credentials(), "NPC-AI: disconnect deletes the stored file")
 
 func _builder_and_gateway(check: Callable) -> void:
 	var builder: RefCounted = Builder.create("Return one json object.", {"fact.synthetic": "合成事实正文"})

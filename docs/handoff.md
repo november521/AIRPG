@@ -1,5 +1,31 @@
 # 接续记录
 
+## API Key 保存在本机（2026-10-04）
+
+用户要求“把 apikey 保存在本地，不然重启一次配置一次太麻烦”。工作包：AI 凭据本地持久化 / 负责人本任务 /
+独立对抗复核待分配；分支 `feature/held-inventory-item`，未推送。决策与风险见
+[ADR 0012](adr/0012-local-api-key-storage.md)。
+
+实现：新增 `infrastructure/ai/local_credential_store.gd`（唯一接触凭据文件的适配器，默认
+`user://ai_credentials.json`，即 `%APPDATA%\Godot\app_userdata\AIRPG\`——在 res:// 之外、仓库之外、
+不进导出包）。读取严格校验（字段精确、类型、长度、拒绝控制字符），不合法失败关闭；写入 best-effort，
+失败只影响“下次不用重填”。端口 `ModelConfiguration` 增加 `restore()` 与 `configure_stored()`；
+组合根显式注入 store 并调用 `restore()`；设置面板 Key 留空＝沿用已保存密钥，诊断只多一个布尔 `stored`；
+“断开”同时删除本机文件。`.gitignore` 增加 `ai_credentials.json` 兜底。
+
+**只有组合根能决定写盘**：`RuntimeModelConfiguration` 不再有隐式默认 store，传 null 即纯内存。
+这条是在本轮发现的测试污染后加的：设置面板测试用 `Runtime.new()` 会把合成凭据写进真实的
+`user://ai_credentials.json`，既污染玩家密钥又让后续 `restore()` 误判“已配置”（日志里出现
+`AIRPG_NPC_AI: ready`）。现在测试运行不再产生该文件，已清掉被写入的合成文件；真实用户目录当时是干净的。
+
+验证：架构 204 个源/场景文件 + 3 项负向用例、导入与启动标记；`AIRPG_TESTS` 见本轮等价驱动结果，
+其中 NPC_AI 100→111 新增：缺失文件上报、写入/读回、重启后 `restore` 成功、诊断不含 Key、
+Key 留空复用已保存凭据、损坏文件失败关闭、控制字符拒收、断开删除文件。未使用真实 Key（测试用合成字符串）。
+
+未实现/待复核：明文存储的风险取舍（个人原型可接受，分发前必须改服务端转发）、Windows 凭据管理器集成、
+多账户/多端点管理、密钥轮换提醒。复核重点：任何新代码路径是否可能在日志、诊断或导出包中出现 Key，
+以及 `user://` 与项目目录的边界是否仍成立。
+
 ## 问两句就卡住：失败锁死自由输入（2026-10-04）
 
 用户补充“问两句就会卡住”。定位到根因：`DialogueRequestRegistry` 只允许同时一个在途请求，而

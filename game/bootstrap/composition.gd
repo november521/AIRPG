@@ -8,6 +8,7 @@ const StateStore = preload("res://domain/story/state_store.gd")
 const Session = preload("res://application/session_service.gd")
 const DisabledProvider = preload("res://infrastructure/ai/disabled_provider.gd")
 const RuntimeModelConfiguration = preload("res://infrastructure/ai/runtime_model_configuration.gd")
+const LocalCredentialStore = preload("res://infrastructure/ai/local_credential_store.gd")
 const ModelConnectionService = preload("res://application/ai/model_connection_service.gd")
 const StoryArchive = preload("res://bootstrap/story_archive_composition.gd")
 const Launcher = preload("res://application/ports/story_launcher.gd")
@@ -34,7 +35,10 @@ static func build(config_path: String = "res://data/config/app.json", launcher: 
 	if not initialized.ok:
 		return initialized
 	var archive := StoryArchive.build(OS.is_debug_build() and config.value.get("story_archive_placeholders", false), launcher)
-	var ai_runtime := RuntimeModelConfiguration.new()
+	# The composition root is the only place that opts into remembering credentials on disk.
+	var ai_runtime := RuntimeModelConfiguration.new(LocalCredentialStore.new())
+	# Remembered local credentials are best effort: nothing stored simply means offline.
+	ai_runtime.restore()
 	return Result.success({"session": Session.new(state), "provider": DisabledProvider.new(),
 		"ai_runtime": ai_runtime, "ai_connection": ModelConnectionService.new(ai_runtime),
 		"story_archive": archive.service, "story_art": archive.art,

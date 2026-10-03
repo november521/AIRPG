@@ -115,5 +115,9 @@ func _refresh_status() -> void:
 	if summary.get("configured", false):
 		_status.text = tr("ai.settings.connected").format({"host": summary.endpoint_host,
 			"model": summary.model})
+		if summary.get("stored", false):
+			_status.text += "\n" + tr("ai.settings.stored")
 	else:
 		_status.text = tr("ai.settings.disconnected")
+		if summary.get("stored", false):
+			_status.text += "\n" + tr("ai.settings.store_unreadable")

@@ -71,7 +71,7 @@ story_archive_placeholders 默认为 false，发布构建忽略启用请求。
 | `DialogueConfiguration` | 必需 session/state/provider/context/facts/action_catalog/speakers；可选 action_sink、reply_policies | speakers 仍只有 name_key 与 portrait_id；reply_policies 是按说话人索引的受校验策略信封 |
 | `WorldBook.facts_for` | 分层世界书条目 + 本场景说话人列表 → F1 fact 记录 | 只投影有本场受众的条目；hidden/running 层不得携带 NPC 受众；每条条目只产出一条 fact |
 | `NpcActionContract` | proposal(session/request/revision/speaker/scene/action) | 只接受精确字段；禁止坐标；动作先经场景 sink 接受才发布回复 |
-| `ModelConfiguration` | configure(endpoint, model, key) / clear / diagnostics | HTTPS 与非空值校验；诊断不含 Key；本次运行内存配置，不做持久化 |
+| `ModelConfiguration` | configure(endpoint, model, key) / restore() / configure_stored(endpoint, model) / clear / diagnostics | HTTPS 与非空值校验；诊断不含 Key（只有 host、model 与是否已本机保存）；可选的 `configure_stored` 让 Key 留空时沿用本机保存的凭据；本机文件见 ADR 0012 |
 
 Result 的公开属性是值协议，不是强不可变类型。领域状态和内容边界自行深拷贝；不能凭借 Result 自动获得隔离。
 当前基类端口返回 NOT_IMPLEMENTED；模型默认适配器返回 AI_NOT_CONFIGURED。不得忽略 ok 并继续当成功使用。

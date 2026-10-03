@@ -11,5 +11,8 @@ artifacts/
 *.tmp
 *.pem
 *.key
+# API credentials live in user://; this guard is only for stray in-project copies.
+ai_credentials.json
+**/ai_credentials.json
 export_credentials.cfg
 **/export_credentials.cfg
