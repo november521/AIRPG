@@ -13,6 +13,10 @@ const DEFAULT_MAX_REQUEST_BYTES: int = 262144
 const DEFAULT_REQUEST_TIMEOUT_SECONDS: float = 60.0
 const DEFAULT_IDLE_TIMEOUT_SECONDS: float = 30.0
 const DEFAULT_MAX_CONCURRENT_REQUESTS: int = 4
+const DEFAULT_PARAMETERS: Dictionary = {
+	"thinking": {"type": "disabled"},
+	"max_tokens": 1024,
+}
 const MAX_MESSAGES_DEPTH: int = 32
 const MAX_STRING_LENGTH: int = 1000000
 const MAX_ARRAY_ITEMS: int = 4096
@@ -26,7 +30,7 @@ const ALLOWED_FIELDS: PackedStringArray = [
 const RESERVED_PARAMETERS: PackedStringArray = ["messages", "model", "stream", "stream_options"]
 const ALLOWED_PARAMETERS: PackedStringArray = [
 	"temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty",
-	"seed", "stop",
+	"seed", "stop", "thinking",
 ]
 
 var endpoint_url: String = ""
@@ -178,7 +182,7 @@ static func _read_bool(source: Dictionary, key: String, fallback: bool, issues: 
 	return value
 
 static func _read_parameters(source: Dictionary, issues: Array[String]) -> Dictionary:
-	var output: Dictionary = {}
+	var output: Dictionary = DEFAULT_PARAMETERS.duplicate(true)
 	if not source.has("parameters"):
 		return output
 	var raw: Variant = source["parameters"]
@@ -192,6 +196,9 @@ static func _read_parameters(source: Dictionary, issues: Array[String]) -> Dicti
 			continue
 		if not is_json_safe(raw[key], 4):
 			issues.append("parameter value rejected")
+			continue
+		if key == "thinking" and raw[key] not in [{"type": "enabled"}, {"type": "disabled"}]:
+			issues.append("thinking parameter rejected")
 			continue
 		output[key] = raw[key]
 	return output

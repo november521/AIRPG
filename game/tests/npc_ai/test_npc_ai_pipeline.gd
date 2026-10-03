@@ -17,6 +17,7 @@ const ActionDriver = preload("res://presentation/manor/npc_action_driver.gd")
 const ConnectionPanel = preload("res://presentation/menu/ai_connection_panel.gd")
 const JsonFile = preload("res://infrastructure/content/json_file.gd")
 const Schema = preload("res://shared/schema_validator.gd")
+const ModelReply = preload("res://domain/dialogue/model_reply.gd")
 
 class FakeActor extends RefCounted:
 	var npc_id: String = "preview_actor"
@@ -106,13 +107,65 @@ func _builder_and_gateway(check: Callable) -> void:
 	check.call(gateway.start("test.gateway.2", context).ok,
 		"NPC-AI: second request accepted")
 	transport.finish("test.gateway.2", _envelope(_reply(), "length"))
+	var retry_two := _recovery_id("test.gateway.2")
+	check.call(failures.is_empty() and transport.accepted.has(retry_two),
+		"NPC-AI: truncated answer retries once without interrupting the player")
+	transport.finish(retry_two, _envelope(_reply()))
+	check.call(completed.size() == 2 and failures.is_empty(),
+		"NPC-AI: recovered answer completes under the original logical request")
+	check.call(gateway.start("test.gateway.invalid", context).ok,
+		"NPC-AI: invalid-response recovery request accepted")
+	transport.fail("test.gateway.invalid", Contract.MODEL_RESPONSE_INVALID)
+	var retry_invalid := _recovery_id("test.gateway.invalid")
+	check.call(transport.accepted.has(retry_invalid) and failures.is_empty(),
+		"NPC-AI: provider-reported empty or invalid content retries once")
+	transport.fail(retry_invalid, Contract.MODEL_RESPONSE_INVALID)
 	check.call(failures == [Contract.MODEL_RESPONSE_INVALID],
-		"NPC-AI: truncated finish reason fails closed")
+		"NPC-AI: a second invalid answer fails closed instead of looping")
+	_classified_failures(check, gateway, transport, context, completed, failures)
 	check.call(gateway.start("test.gateway.3", context).ok,
 		"NPC-AI: active request accepted before release")
 	gateway.release()
 	check.call("test.gateway.3" in transport.cancelled,
 		"NPC-AI: gateway release cancels active transport")
+
+## Every transient answer defect retries once and then reports its own class, so a stuck
+## conversation can be told apart from a truncated or protocol-breaking answer.
+func _classified_failures(check: Callable, gateway: RefCounted, transport: RefCounted,
+		context: Dictionary, completed: Array, failures: Array) -> void:
+	var empty_start: int = failures.size()
+	check.call(gateway.start("test.gateway.empty", context).ok,
+		"NPC-AI: empty-content request accepted")
+	transport.finish("test.gateway.empty", _raw_envelope("", "stop"))
+	var empty_retry := _recovery_id("test.gateway.empty")
+	check.call(transport.accepted.has(empty_retry) and failures.size() == empty_start,
+		"NPC-AI: an empty answer is resampled once instead of surfacing")
+	transport.finish(empty_retry, _raw_envelope("", "stop"))
+	check.call(failures.slice(empty_start) == [Contract.MODEL_EMPTY_CONTENT],
+		"NPC-AI: a repeated empty answer is reported as MODEL_EMPTY_CONTENT")
+	var truncated_start: int = failures.size()
+	check.call(gateway.start("test.gateway.truncated", context).ok,
+		"NPC-AI: truncated request accepted")
+	transport.finish("test.gateway.truncated", _envelope(_reply(), "length"))
+	transport.finish(_recovery_id("test.gateway.truncated"), _envelope(_reply(), "length"))
+	check.call(failures.slice(truncated_start) == [Contract.MODEL_FINISH_INCOMPLETE],
+		"NPC-AI: a truncated answer is reported as MODEL_FINISH_INCOMPLETE")
+	var malformed_start: int = failures.size()
+	check.call(gateway.start("test.gateway.malformed", context).ok,
+		"NPC-AI: malformed reply request accepted")
+	transport.finish("test.gateway.malformed", _raw_envelope("{\"a\":1}", "stop"))
+	transport.finish(_recovery_id("test.gateway.malformed"), _raw_envelope("{\"a\":1}", "stop"))
+	check.call(failures.slice(malformed_start) == [Contract.MODEL_REPLY_INVALID],
+		"NPC-AI: a protocol-breaking answer is reported as MODEL_REPLY_INVALID")
+	var issues: Array = ModelReply.parse("{\"a\":1}").issues
+	check.call(str(issues).contains("fields:") and not str(issues).contains("a\":1"),
+		"NPC-AI: field classification stays free of reply content")
+	check.call(completed.size() == 2, "NPC-AI: classified failures publish no reply")
+
+## A transport envelope is the only way to hand the gateway content the contract rejects.
+func _raw_envelope(content: String, finish_reason: String) -> Dictionary:
+	return {"transport_schema_version": 1, "content": content, "finish_reason": finish_reason,
+		"usage": {}}
 
 func _prompt_resource(check: Callable) -> void:
 	var prompt: RefCounted = JsonFile.read("res://data/ai/npc_prompt.zh_CN.json")
@@ -121,10 +174,23 @@ func _prompt_resource(check: Callable) -> void:
 		else Schema.validate(prompt.value, schema.value)
 	check.call(prompt.ok and schema.ok and issues.is_empty(),
 		"NPC-AI: versioned prompt resource passes its strict schema")
-	var built: RefCounted = Builder.create(prompt.value.system_prompt, {}) \
-		if prompt.ok else null
+	var built: RefCounted = Builder.create(prompt.value.system_prompt,
+		{"fact.synthetic": "合成事实正文"}) if prompt.ok else null
 	check.call(built != null and built.ok,
 		"NPC-AI: reviewed prompt resource passes request-builder limits")
+	if built == null or not built.ok:
+		return
+	var request: RefCounted = built.value.build(_context())
+	check.call(request.ok and request.value.messages[0].content.contains("\"speaker_id\":\"preview_actor\"") \
+		and not request.value.messages[0].content.contains("__SPEAKER_ID_JSON__"),
+		"NPC-AI: JSON example carries the exact current speaker ID")
+	check.call(Contract.completed_response("", "stop", {}).code == Contract.MODEL_EMPTY_CONTENT \
+		and Contract.completed_response("{}", "", {}).code == Contract.MODEL_FINISH_INCOMPLETE,
+		"NPC-AI: empty content and missing stop reason carry their own stable codes")
+	check.call(Contract.is_stable_error(Contract.MODEL_EMPTY_CONTENT) \
+		and Contract.is_stable_error(Contract.MODEL_FINISH_INCOMPLETE) \
+		and Contract.is_stable_error(Contract.MODEL_REPLY_INVALID),
+		"NPC-AI: answer-defect classes are stable errors")
 
 func _runtime_configuration(check: Callable) -> void:
 	var runtime: RefCounted = Runtime.new()
@@ -272,3 +338,6 @@ func _reply() -> Dictionary:
 
 func _envelope(reply: Dictionary, finish_reason: String = "stop") -> Dictionary:
 	return Contract.completed_response(JSON.stringify(reply), finish_reason, {}).value
+
+func _recovery_id(request_id: String) -> String:
+	return "recovery." + request_id.sha256_text().substr(0, 32) + ".1"

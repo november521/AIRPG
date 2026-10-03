@@ -64,9 +64,9 @@ story_archive_placeholders 默认为 false，发布构建忽略启用请求。
 | `SceneRouter` | configure(host, routes)、navigate(id) → Result(Node) | 节点移除后延迟释放；无效路由保留旧视图 |
 | `ExplorationContract` | move(axis)、interact(target_id)、investigate()、candidate(...) | 只表达玩家意图和互动候选；不计算检定、不修改剧情状态 |
 | `DialogueViewContract` | status(...)、verified_reply(...)、player_text(...)、option_selection(...) | 玩家输入原样保留；只有 `verified_reply` 可作为模型台词进入 UI |
-| `ModelTransportContract` | request(id, filtered_context)、is_stable_error(code) | 上下文深拷贝；供应商错误不得越过稳定错误码边界 |
-| `ChatCompletionRequestBuilder` | 已隔离上下文 → system/user messages（可选按说话人注入人格） | 事实 key 必须解析为审核正文；人格模板占位符必须在构造期全部有值；权威与 untrusted 分区；请求 JSON 深拷贝 |
-| `ChatCompletionGateway` | filtered context → `ModelReply` | 缓存完整 content 后解析；非 stop、无效 JSON 与未知字段失败；不转发 raw delta |
+| `ModelTransportContract` | request(id, filtered_context)、is_stable_error(code) | 上下文深拷贝；供应商错误不得越过稳定错误码边界；答案缺陷另分 `MODEL_EMPTY_CONTENT` / `MODEL_FINISH_INCOMPLETE` / `MODEL_REPLY_INVALID` 三个稳定可重试码（ADR 0013） |
+| `ChatCompletionRequestBuilder` | 已隔离上下文 → system/user messages（可选按说话人注入人格） | 事实 key 必须解析为审核正文；人格模板占位符必须在构造期全部有值；JSON 示例的说话人占位符按本次请求替换；权威与 untrusted 分区；请求 JSON 深拷贝 |
+| `ChatCompletionGateway` | filtered context → `ModelReply` | 缓存完整 content 后解析；对空内容/截断/协议不符自动重采样一次（逻辑请求 id 不变），仍失败才上报分类码；日志只含类别与自有键名，不含回复正文 |
 | `ReplyValidator.validate` | reply / speaker / 允许与已知事实 / 动作目录 / 可选角色输出策略 | 结构、说话人、事实与动作先判；角色策略最后判；策略拒绝一律按可重试失败处理 |
 | `DialogueConfiguration` | 必需 session/state/provider/context/facts/action_catalog/speakers；可选 action_sink、reply_policies | speakers 仍只有 name_key 与 portrait_id；reply_policies 是按说话人索引的受校验策略信封 |
 | `WorldBook.facts_for` | 分层世界书条目 + 本场景说话人列表 → F1 fact 记录 | 只投影有本场受众的条目；hidden/running 层不得携带 NPC 受众；每条条目只产出一条 fact |

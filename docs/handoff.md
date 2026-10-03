@@ -1,5 +1,38 @@
 # 接续记录
 
+## 模型回答缺陷分类 + 一次静默重采样（2026-10-04）
+
+用户给出实机证据：同一套配置下有些请求成功进入 presenting、有些失败，而 Key 错误会持续返回
+`MODEL_TRANSPORT_ERROR`，不会间歇成功——因此问题在响应本身，不在凭据。工作包：对话失败分类与恢复 /
+负责人本任务 / 独立对抗复核待分配；分支 `feature/held-inventory-item`，未推送。决策见
+[ADR 0013](adr/0013-model-answer-defect-classification.md)。
+
+**协作情况（重要）**：本轮开始前，工作区里已有**另一个会话**未提交的同类改动（网关一次重采样 attempt 机制、
+`deepseek_config` 的 `max_tokens: 1024` + `thinking: disabled`、提示词 JSON 示例与
+`__SPEAKER_ID_JSON__` 占位符及其测试，时间戳 01:04–01:07）。我先把自己并行改的两个文件回退，避免覆盖它，
+随后在其基础上继续完成并统一验证；该会话最后写入时间为 01:07，之后未再改动。**同一批文件请勿再并行双写**。
+
+本轮在其之上完成的部分：契约新增 `MODEL_EMPTY_CONTENT` / `MODEL_FINISH_INCOMPLETE` / `MODEL_REPLY_INVALID`
+三个稳定可重试码，`completed_response` 最先分类、provider 原样透传；网关把分类接进它已有的重采样路径
+（可恢复码自动重发一次、逻辑请求 id 不变、第二次仍失败才上报分类码），并打印
+`AIRPG_AI_RECOVERY: retry <code> <detail>` / `AIRPG_MODEL_REPLY_REJECTED: <code> <detail> (retry exhausted)`，
+`<detail>` 只含类别、自有键名与计数（`fields:1`、`finish:length`、`envelope:MODEL_EMPTY_CONTENT`），
+**不含回复正文**；`ModelReply` 的 issues 同样只报键名/计数/分组；对话用例把三个新码标为可重试；
+失败状态同时显示本地化解释与稳定码。
+
+顺带修掉一个真实缺口：`game/presentation/dialogue/localization_keys.md` 里登记的 16 个界面键与 7 个错误码键
+**从未并入** `data/localization/zh_CN.json`，正式构建里对话界面会直接显示键名。现已全部并入（含三个新码），
+并同步 I1 用例中「期望显示键名」的断言为「期望显示翻译」。
+
+验证：架构 204 个源/场景文件 + 3 项负向用例；`AIRPG_TESTS: 1098 checks, 0 failures`
+（NPC_AI 116→127，其中新增空内容/截断/协议不符的分类与重采样断言、示例说话人替换断言、分类不带正文断言；
+G1 142 项保持通过）；导入与启动标记见等价驱动。未使用真实 Key，未发生外部模型调用。
+
+未实现/待复核：重采样固定一次、无退避、未按分类区分；`thinking: disabled` 对推理型模型的影响、
+1024 上限在长选项下的截断概率、重采样对成本与延迟的影响均未实测；真实 DeepSeek 联调仍需用户实机复现
+以确认空响应频率下降。复核重点：分类是否误判（空白但语义有效的回复）、重采样期间不产生任何动作副作用、
+日志细节是否始终不含正文。
+
 ## API Key 保存在本机（2026-10-04）
 
 用户要求“把 apikey 保存在本地，不然重启一次配置一次太麻烦”。工作包：AI 凭据本地持久化 / 负责人本任务 /

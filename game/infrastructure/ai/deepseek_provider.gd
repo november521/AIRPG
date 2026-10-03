@@ -27,7 +27,7 @@ const TerminatedLog = preload("res://infrastructure/ai/terminated_request_log.gd
 const DONE_MARKER: String = "[DONE]"
 const SYNC_REQUEST_INVALID: String = "MODEL_REQUEST_INVALID"
 const FINISH_REASONS: PackedStringArray = [
-	"stop", "length", "tool_calls", "content_filter", "insufficient_system_resource",
+	"stop", "length", "tool_calls", "content_filter", "insufficient_system_resource", "aborted",
 ]
 
 var _config: Config
@@ -238,7 +238,7 @@ func _complete_request(request_id: String, state: Dictionary) -> void:
 		return
 	var response := Contract.completed_response(state.text, state.finish_reason, state.usage)
 	if not response.ok:
-		_fail_request(request_id, Contract.MODEL_RESPONSE_INVALID)
+		_fail_request(request_id, response.code)
 		return
 	var payload: Dictionary = response.value
 	state.terminated = true

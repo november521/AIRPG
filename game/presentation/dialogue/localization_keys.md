@@ -1,7 +1,8 @@
 # I1 对话界面本地化键清单
 
-本文件只登记键名，供集成负责人在单点集成时合并进 `game/data/localization/zh_CN.json`。
-I1 分支不修改全局本地化 JSON；缺失翻译时界面回退显示键名，不阻断操作。
+本文件只登记键名。**2026-10-04 已全部并入** `game/data/localization/zh_CN.json`（含后来新增的
+`MODEL_EMPTY_CONTENT` / `MODEL_FINISH_INCOMPLETE` / `MODEL_REPLY_INVALID` 三个错误码键与
+`dialogue.history.divider`）；此前正式构建里界面会显示键名，缺失翻译时的回退行为保留但不再触发。
 
 ## 固定界面文本
 

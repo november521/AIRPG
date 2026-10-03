@@ -294,5 +294,6 @@ static func _stable_error(code: String) -> String:
 
 static func _retryable(code: String) -> bool:
 	return code in [Transport.MODEL_TIMEOUT, Transport.MODEL_TRANSPORT_ERROR,
-		Transport.MODEL_RESPONSE_INVALID, Transport.KNOWLEDGE_SCOPE_VIOLATION,
-		Transport.AI_NOT_CONFIGURED]
+		Transport.MODEL_RESPONSE_INVALID, Transport.MODEL_EMPTY_CONTENT,
+		Transport.MODEL_FINISH_INCOMPLETE, Transport.MODEL_REPLY_INVALID,
+		Transport.KNOWLEDGE_SCOPE_VIOLATION, Transport.AI_NOT_CONFIGURED]

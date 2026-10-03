@@ -56,7 +56,8 @@ func render(state: int, error_code: String, can_retry: bool, notice: String) -> 
 	if state == State.WAITING or state == State.PRESENTING:
 		text = tr("dialogue.waiting")
 	elif state == State.FAILED:
-		text = _error_text(error_code)
+		# Localized explanation plus the stable code, so a failed answer names its own class.
+		text = "%s (%s)" % [_error_text(error_code), error_code]
 	elif state == State.PAUSED:
 		text = "%s (%s)" % [tr("dialogue.paused"), error_code]
 	elif state == State.CANCELLED:

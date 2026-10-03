@@ -17,6 +17,8 @@ func _config(check: Callable) -> void:
 	check.call(valid.ok and valid.value.model == Harness.DEFAULT_MODEL, "valid config accepted")
 	check.call(valid.value.max_response_bytes == 262144 and valid.value.include_usage,
 		"config defaults applied")
+	check.call(valid.value.parameters == {"thinking": {"type": "disabled"}, "max_tokens": 1024},
+		"NPC dialogue defaults disable thinking and bound the JSON answer")
 	check.call(not Config.from_dictionary(Harness.base_config({"unknown_field": 1})).ok,
 		"unknown config field rejected")
 	check.call(not Config.from_dictionary(Harness.base_config({"schema_version": 2})).ok,
@@ -38,8 +40,12 @@ func _config(check: Callable) -> void:
 		"undersized response cap rejected")
 	var params := Config.from_dictionary(Harness.base_config(
 		{"parameters": {"temperature": 0.2, "max_tokens": 256}}))
-	check.call(params.ok and params.value.parameters.size() == 2,
+	check.call(params.ok and params.value.parameters.size() == 3 \
+		and params.value.parameters.max_tokens == 256,
 		"safe generation parameters accepted")
+	check.call(not Config.from_dictionary(Harness.base_config(
+		{"parameters": {"thinking": {"type": "sometimes"}}})).ok,
+		"invalid thinking mode rejected")
 	check.call(not Config.from_dictionary(Harness.base_config(
 		{"parameters": {"messages": []}})).ok, "reserved parameter key rejected")
 	check.call(not Config.from_dictionary(Harness.base_config(

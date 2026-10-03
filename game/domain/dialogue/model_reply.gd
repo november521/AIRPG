@@ -15,23 +15,30 @@ const MAX_OPTIONS: int = 6
 const MAX_OPTION_TEXT_LENGTH: int = 500
 const MAX_ACTIONS: int = 8
 
+## Field-level issues are deliberately content-free: only our own schema key names, counts and
+## group names are reported, so a rejection can be classified in the log without echoing the
+## model's reply text.
 static func validate(data: Variant) -> RefCounted:
-	if not data is Dictionary or data.size() != KEYS.size():
-		return Result.failure("REPLY_INVALID")
+	if not data is Dictionary:
+		return Result.failure("REPLY_INVALID", ["not_object"])
+	if data.size() != KEYS.size():
+		return Result.failure("REPLY_INVALID", ["fields:" + str(data.size())])
 	for key: String in KEYS:
 		if not data.has(key):
-			return Result.failure("REPLY_INVALID")
+			return Result.failure("REPLY_INVALID", ["missing:" + key])
 	for key: Variant in data:
-		if not key is String or key not in KEYS:
-			return Result.failure("REPLY_INVALID")
+		if not key is String:
+			return Result.failure("REPLY_INVALID", ["key_type"])
+		if key not in KEYS:
+			return Result.failure("REPLY_INVALID", ["unknown_field"])
 	var version: Variant = _as_int(data.schema_version)
 	if version == null or version != SCHEMA_VERSION:
-		return Result.failure("REPLY_VERSION_UNSUPPORTED")
+		return Result.failure("REPLY_VERSION_UNSUPPORTED", ["schema_version"])
 	if not data.speaker_id is String or not Ids.is_valid_id(data.speaker_id):
-		return Result.failure("REPLY_INVALID")
+		return Result.failure("REPLY_INVALID", ["id:speaker_id"])
 	if not data.reply_text is String or data.reply_text.strip_edges().is_empty() \
 			or data.reply_text.length() > MAX_TEXT_LENGTH:
-		return Result.failure("REPLY_INVALID")
+		return Result.failure("REPLY_INVALID", ["value:reply_text"])
 	var fact_ids := _valid_fact_ids(data.used_fact_ids)
 	if not fact_ids.ok:
 		return fact_ids
@@ -62,7 +69,7 @@ static func parse(content: String) -> RefCounted:
 
 static func _valid_fact_ids(value: Variant) -> RefCounted:
 	if not value is Array or value.size() > MAX_FACT_IDS:
-		return Result.failure("REPLY_INVALID")
+		return Result.failure("REPLY_INVALID", ["group:used_fact_ids"])
 	var copied: Array[String] = []
 	for item: Variant in value:
 		if not item is String or not Ids.is_valid_id(item) or item in copied:
@@ -72,7 +79,7 @@ static func _valid_fact_ids(value: Variant) -> RefCounted:
 
 static func _valid_options(value: Variant) -> RefCounted:
 	if not value is Array or value.size() > MAX_OPTIONS:
-		return Result.failure("REPLY_INVALID")
+		return Result.failure("REPLY_INVALID", ["group:options"])
 	var copied: Array[Dictionary] = []
 	var seen: Dictionary = {}
 	for item: Variant in value:
@@ -91,7 +98,7 @@ static func _valid_options(value: Variant) -> RefCounted:
 
 static func _valid_actions(value: Variant) -> RefCounted:
 	if not value is Array or value.size() > MAX_ACTIONS:
-		return Result.failure("REPLY_INVALID")
+		return Result.failure("REPLY_INVALID", ["group:actions"])
 	var copied: Array[Dictionary] = []
 	var seen: Dictionary = {}
 	for item: Variant in value:

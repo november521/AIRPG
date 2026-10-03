@@ -47,6 +47,9 @@ func _happy_path(check: Callable) -> void:
 		"request body carries configured model and stream flag")
 	check.call(body.get("stream_options", {}).get("include_usage") == true,
 		"usage requested as structured stream option")
+	check.call(body.get("thinking") == {"type": "disabled"} \
+		and body.get("max_tokens") == 1024,
+		"short NPC requests disable reasoning and bound JSON output")
 	check.call(body.get("messages") is Array, "filtered context passed through as body")
 	stream.emit_started(200)
 	for chunk: Variant in Fixture.load_chunks(BASIC):

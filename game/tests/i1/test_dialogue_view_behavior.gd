@@ -161,8 +161,8 @@ func _input_guards(check: Callable, host: Node) -> void:
 	check.call(fake.submissions.size() == 1, "contract-rejected input is not submitted")
 	check.call(view.get_state() == Chrome.State.IDLE, "rejected input keeps view idle")
 	var status := view.find_child("StatusLabel", true, false) as Label
-	check.call(status.visible and status.text == "dialogue.free_text.rejected",
-		"local rejection notice is localized-key safe")
+	check.call(status.visible and status.text == tr("dialogue.free_text.rejected"),
+		"local rejection notice is localized")
 	await _free(ctx)
 
 func _failure_and_retry(check: Callable, host: Node) -> void:
@@ -215,7 +215,7 @@ func _paused_and_cancelled(check: Callable, host: Node) -> void:
 	_button(view, "BackButton").pressed.emit()
 	check.call(backs.size() == 1, "back control emits a presentation request")
 	var status := view.find_child("StatusLabel", true, false) as Label
-	check.call(status.text.contains("dialogue.paused"), "pause status visible without localization")
+	check.call(status.text.contains(tr("dialogue.paused")), "pause status is localized and keeps the code")
 	await _free(ctx)
 	var second := await _make(host)
 	var cancel_view: DialogueView = second.view
@@ -313,7 +313,7 @@ func _portraits_and_long_text(check: Callable, host: Node) -> void:
 	check.call(not (view.find_child("PortraitTexture", true, false) as TextureRect).visible,
 		"missing portrait keeps texture hidden")
 	var fallback := view.find_child("PortraitFallback", true, false) as Label
-	check.call(fallback.visible and fallback.text == "dialogue.portrait.missing",
+	check.call(fallback.visible and fallback.text == tr("dialogue.portrait.missing"),
 		"missing portrait shows localized-key placeholder")
 	view.skip_playback()
 	var texture := GradientTexture2D.new()
@@ -359,7 +359,7 @@ func _conversation_boundary(check: Callable, host: Node) -> void:
 	check.call(view.get_reply_text().is_empty(), "new conversation clears the previous reply")
 	check.call(_options(view).get_child_count() == 0, "new conversation clears the previous options")
 	var name_label := view.find_child("SpeakerName", true, false) as Label
-	check.call(name_label != null and name_label.text == "npc.other.name",
+	check.call(name_label != null and name_label.text == tr("dialogue.name.unknown"),
 		"new conversation names the new speaker before any reply")
 	check.call(view.get_state() == Chrome.State.IDLE, "new conversation starts idle")
 	check.call(_history(view).entry_count() == 3,
@@ -398,7 +398,7 @@ func _localization_and_history(check: Callable, host: Node) -> void:
 	var status := view.find_child("StatusLabel", true, false) as Label
 	_line_edit(view, "InputEdit").text = "缺失本地化"
 	_button(view, "SubmitButton").pressed.emit()
-	check.call(status.text == "dialogue.waiting", "missing localization falls back to key")
+	check.call(status.text == tr("dialogue.waiting"), "waiting status is localized")
 	var history := _history(view)
 	check.call(_editable_count(history) == 0, "history panel is read-only")
 	var history_button := _button(view, "HistoryButton")
@@ -445,3 +445,4 @@ func _layout_sizes(check: Callable, host: Node) -> void:
 		check.call(box.size.y >= 280.0 and box.size.y <= size.y, "dialogue box fits %s" % str(size))
 		check.call(portrait.size.x > 0.0 and portrait.size.y > 0.0, "portrait area present at %s" % str(size))
 		await _free(ctx)
+

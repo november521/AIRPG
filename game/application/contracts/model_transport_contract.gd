@@ -8,6 +8,13 @@ const AI_NOT_CONFIGURED: String = "AI_NOT_CONFIGURED"
 const MODEL_TIMEOUT: String = "MODEL_TIMEOUT"
 const MODEL_TRANSPORT_ERROR: String = "MODEL_TRANSPORT_ERROR"
 const MODEL_RESPONSE_INVALID: String = "MODEL_RESPONSE_INVALID"
+## JSON-mode providers occasionally answer with an empty message; that is a distinct, retryable
+## condition from a malformed transport payload, so it carries its own stable code.
+const MODEL_EMPTY_CONTENT: String = "MODEL_EMPTY_CONTENT"
+## The stream ended without a usable stop reason (truncated by the output cap, filtered, ...).
+const MODEL_FINISH_INCOMPLETE: String = "MODEL_FINISH_INCOMPLETE"
+## Content arrived but did not satisfy the structured reply protocol (fields, ids, actions).
+const MODEL_REPLY_INVALID: String = "MODEL_REPLY_INVALID"
 const KNOWLEDGE_SCOPE_VIOLATION: String = "KNOWLEDGE_SCOPE_VIOLATION"
 const REQUEST_CANCELLED: String = "REQUEST_CANCELLED"
 const REQUEST_STALE: String = "REQUEST_STALE"
@@ -15,7 +22,8 @@ const RESPONSE_SCHEMA_VERSION: int = 1
 const MAX_RESPONSE_TEXT_LENGTH: int = 48000
 
 const _ERRORS: Array[String] = [AI_NOT_CONFIGURED, MODEL_TIMEOUT, MODEL_TRANSPORT_ERROR,
-	MODEL_RESPONSE_INVALID, KNOWLEDGE_SCOPE_VIOLATION, REQUEST_CANCELLED, REQUEST_STALE]
+	MODEL_RESPONSE_INVALID, MODEL_EMPTY_CONTENT, MODEL_FINISH_INCOMPLETE, MODEL_REPLY_INVALID,
+	KNOWLEDGE_SCOPE_VIOLATION, REQUEST_CANCELLED, REQUEST_STALE]
 
 static func request(request_id: String, filtered_context: Dictionary) -> RefCounted:
 	if request_id.is_empty() or request_id.length() > 128:
@@ -30,10 +38,14 @@ static func is_stable_error(code: String) -> bool:
 
 static func completed_response(content: String, finish_reason: String,
 		usage: Dictionary) -> RefCounted:
-	if content.is_empty() or content.length() > MAX_RESPONSE_TEXT_LENGTH:
+	# Ordered classification: an empty message is its own retryable condition, a missing stop
+	# reason means the answer was cut short, anything else is a malformed transport payload.
+	if content.strip_edges().is_empty():
+		return Result.failure(MODEL_EMPTY_CONTENT)
+	if content.length() > MAX_RESPONSE_TEXT_LENGTH:
 		return Result.failure(MODEL_RESPONSE_INVALID)
-	if finish_reason.is_empty() or finish_reason.length() > 64:
-		return Result.failure(MODEL_RESPONSE_INVALID)
+	if finish_reason.strip_edges().is_empty() or finish_reason.length() > 64:
+		return Result.failure(MODEL_FINISH_INCOMPLETE)
 	if usage.size() > 16 or not _valid_usage(usage):
 		return Result.failure(MODEL_RESPONSE_INVALID)
 	return Result.success({"transport_schema_version": RESPONSE_SCHEMA_VERSION,

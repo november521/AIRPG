@@ -13,6 +13,7 @@ const Ids = preload("res://domain/dialogue/identifiers.gd")
 const MAX_PROMPT_LENGTH: int = 24000
 const MAX_PERSONA_LENGTH: int = 8000
 const MAX_PERSONA_VALUES: int = 24
+const SPEAKER_JSON_PLACEHOLDER: String = "__SPEAKER_ID_JSON__"
 const CONTEXT_KEYS: Array[String] = ["schema_version", "speaker_id", "scene_id", "topic_id",
 	"trusted_facts", "perceptible", "recent_dialogue", "key_memories", "untrusted",
 	"allowed_actions"]
@@ -78,9 +79,13 @@ func build(filtered_context: Variant) -> RefCounted:
 	})
 
 func _system_message(speaker_id: Variant) -> RefCounted:
+	if not speaker_id is String or not Ids.is_valid_id(speaker_id):
+		return Result.failure("MODEL_PERSONA_UNAVAILABLE", [str(speaker_id)])
+	var boundary_prompt := _system_prompt.replace(SPEAKER_JSON_PLACEHOLDER,
+		JSON.stringify(speaker_id))
 	if _personas.is_empty():
-		return Result.success(_system_prompt)
-	if not speaker_id is String or not _personas.has(speaker_id):
+		return Result.success(boundary_prompt)
+	if not _personas.has(speaker_id):
 		return Result.failure("MODEL_PERSONA_UNAVAILABLE", [str(speaker_id)])
 	var persona: Dictionary = _personas[speaker_id]
 	var template: String = persona.template
@@ -88,7 +93,7 @@ func _system_message(speaker_id: Variant) -> RefCounted:
 		template = template.replace("{" + name + "}", persona.values[name])
 	if template.contains("{"):
 		return Result.failure("MODEL_PERSONA_INCOMPLETE", [speaker_id])
-	return Result.success(_system_prompt + "\n\n" + template)
+	return Result.success(boundary_prompt + "\n\n" + template)
 
 static func _valid_personas(value: Variant) -> RefCounted:
 	if not value is Dictionary or value.size() > 64:
