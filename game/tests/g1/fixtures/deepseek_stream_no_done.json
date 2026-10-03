@@ -1,0 +1,5 @@
+{
+  "description": "Synthetic offline SSE recording with complete events and a clean EOF but no [DONE] sentinel. Used to prove a clean end is not treated as success.",
+  "chunk_size": 6,
+  "text": "data: {\"id\":\"fixture-3\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"没有结束标记\"},\"finish_reason\":\"stop\"}]}\r\n\r\n"
+}

@@ -81,9 +81,13 @@ func _navigate(route_id: String) -> RefCounted:
 	elif view is CreationView:
 		view.configure(_creation_service)
 	elif view is Manor:
+		view.configure_ai(_services.ai_runtime)
 		if _creation_service != null and _creation_service.read_creation().locked:
 			view.character_service.apply_created_profile(_creation_service.read_creation())
-	elif not view is Manor:
+	elif view is StartScreen:
+		view.configure(_services.session, _services.pack_id, _services.content_version,
+			_services.config.debug_panel and OS.is_debug_build(), _services.ai_connection)
+	else:
 		view.configure(_services.session, _services.pack_id, _services.content_version,
 			_services.config.debug_panel and OS.is_debug_build())
 	view.route_requested.connect(_navigate)

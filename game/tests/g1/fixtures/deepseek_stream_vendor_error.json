@@ -1,0 +1,5 @@
+{
+  "description": "Synthetic offline SSE recording containing a vendor error object with a fake secret marker. Used to prove vendor error text never crosses the stable code boundary.",
+  "chunk_size": 0,
+  "text": "data: {\"error\":{\"message\":\"G1_VENDOR_SECRET_MARKER fake-credential-text stack trace\",\"type\":\"server_error\",\"code\":\"internal\"}}\r\n\r\n"
+}

@@ -14,19 +14,27 @@ extends "res://presentation/exploration/interactions/pickup_view.gd"
 const InteractionHandler = preload("res://application/exploration/interactions/interaction_handler.gd")
 const Caption = preload("res://presentation/manor/narrative_caption.gd")
 var _item_data: Resource
+var _item_id: String = ""
 var _captions: Caption
 var _published_key: String = ""
 
 func configure_data(item_data: Resource, handler: InteractionHandler, quantity: int) -> void:
 	_item_data = item_data
+	_item_id = String(item_data.id)
 	configure(handler, item_data.display_name_key, quantity)
+
+## A pickup dropped back into the world has no ItemData resource, so identity is injected instead.
+func configure_runtime(item_id: String, handler: InteractionHandler, name_key: String, quantity: int) -> void:
+	_item_data = null
+	_item_id = item_id
+	configure(handler, name_key, quantity)
 
 ## Injected by bootstrap. Left unattached, a claimed item simply disappears with no text.
 func attach_captions(captions: Caption) -> void:
 	_captions = captions
 
 func item_id() -> String:
-	return String(_item_data.id) if _item_data != null else ""
+	return _item_id if _item_data == null else String(_item_data.id)
 
 ## The only thing that talks is a change in what the handler has said. A freshly placed pickup has
 ## said nothing, so attaching the layer is silent; the first command makes it speak; the command that

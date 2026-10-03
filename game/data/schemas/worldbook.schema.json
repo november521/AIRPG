@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIRPG Dead Light world book v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "entries"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "source": {"type": "string", "minLength": 1},
+    "entries": {
+      "type": "array", "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entry_id", "layer", "section", "keywords", "text_key", "text",
+          "speakers", "public_scene", "scenes", "topics", "conditions"],
+        "properties": {
+          "entry_id": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+          "layer": {"type": "string", "enum": ["public", "investigation", "hidden", "running"]},
+          "section": {"type": "string", "minLength": 1},
+          "keywords": {"type": "array", "maxItems": 12, "items": {"type": "string", "minLength": 1}},
+          "text_key": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+          "text": {"type": "string", "minLength": 1},
+          "speakers": {"type": "array", "maxItems": 16,
+            "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"}},
+          "public_scene": {"type": "array", "maxItems": 8,
+            "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"}},
+          "scenes": {"type": "array", "maxItems": 8,
+            "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"}},
+          "topics": {"type": "array", "maxItems": 16,
+            "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"}},
+          "conditions": {
+            "type": "array", "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["flag", "equals"],
+              "properties": {
+                "flag": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+                "equals": {"type": "boolean"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

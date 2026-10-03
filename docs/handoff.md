@@ -1,5 +1,262 @@
 # 接续记录
 
+## 模型回答缺陷分类 + 一次静默重采样（2026-10-04）
+
+用户给出实机证据：同一套配置下有些请求成功进入 presenting、有些失败，而 Key 错误会持续返回
+`MODEL_TRANSPORT_ERROR`，不会间歇成功——因此问题在响应本身，不在凭据。工作包：对话失败分类与恢复 /
+负责人本任务 / 独立对抗复核待分配；分支 `feature/held-inventory-item`，未推送。决策见
+[ADR 0013](adr/0013-model-answer-defect-classification.md)。
+
+**协作情况（重要）**：本轮开始前，工作区里已有**另一个会话**未提交的同类改动（网关一次重采样 attempt 机制、
+`deepseek_config` 的 `max_tokens: 1024` + `thinking: disabled`、提示词 JSON 示例与
+`__SPEAKER_ID_JSON__` 占位符及其测试，时间戳 01:04–01:07）。我先把自己并行改的两个文件回退，避免覆盖它，
+随后在其基础上继续完成并统一验证；该会话最后写入时间为 01:07，之后未再改动。**同一批文件请勿再并行双写**。
+
+本轮在其之上完成的部分：契约新增 `MODEL_EMPTY_CONTENT` / `MODEL_FINISH_INCOMPLETE` / `MODEL_REPLY_INVALID`
+三个稳定可重试码，`completed_response` 最先分类、provider 原样透传；网关把分类接进它已有的重采样路径
+（可恢复码自动重发一次、逻辑请求 id 不变、第二次仍失败才上报分类码），并打印
+`AIRPG_AI_RECOVERY: retry <code> <detail>` / `AIRPG_MODEL_REPLY_REJECTED: <code> <detail> (retry exhausted)`，
+`<detail>` 只含类别、自有键名与计数（`fields:1`、`finish:length`、`envelope:MODEL_EMPTY_CONTENT`），
+**不含回复正文**；`ModelReply` 的 issues 同样只报键名/计数/分组；对话用例把三个新码标为可重试；
+失败状态同时显示本地化解释与稳定码。
+
+顺带修掉一个真实缺口：`game/presentation/dialogue/localization_keys.md` 里登记的 16 个界面键与 7 个错误码键
+**从未并入** `data/localization/zh_CN.json`，正式构建里对话界面会直接显示键名。现已全部并入（含三个新码），
+并同步 I1 用例中「期望显示键名」的断言为「期望显示翻译」。
+
+验证：架构 204 个源/场景文件 + 3 项负向用例；`AIRPG_TESTS: 1098 checks, 0 failures`
+（NPC_AI 116→127，其中新增空内容/截断/协议不符的分类与重采样断言、示例说话人替换断言、分类不带正文断言；
+G1 142 项保持通过）；导入与启动标记见等价驱动。未使用真实 Key，未发生外部模型调用。
+
+未实现/待复核：重采样固定一次、无退避、未按分类区分；`thinking: disabled` 对推理型模型的影响、
+1024 上限在长选项下的截断概率、重采样对成本与延迟的影响均未实测；真实 DeepSeek 联调仍需用户实机复现
+以确认空响应频率下降。复核重点：分类是否误判（空白但语义有效的回复）、重采样期间不产生任何动作副作用、
+日志细节是否始终不含正文。
+
+## API Key 保存在本机（2026-10-04）
+
+用户要求“把 apikey 保存在本地，不然重启一次配置一次太麻烦”。工作包：AI 凭据本地持久化 / 负责人本任务 /
+独立对抗复核待分配；分支 `feature/held-inventory-item`，未推送。决策与风险见
+[ADR 0012](adr/0012-local-api-key-storage.md)。
+
+实现：新增 `infrastructure/ai/local_credential_store.gd`（唯一接触凭据文件的适配器，默认
+`user://ai_credentials.json`，即 `%APPDATA%\Godot\app_userdata\AIRPG\`——在 res:// 之外、仓库之外、
+不进导出包）。读取严格校验（字段精确、类型、长度、拒绝控制字符），不合法失败关闭；写入 best-effort，
+失败只影响“下次不用重填”。端口 `ModelConfiguration` 增加 `restore()` 与 `configure_stored()`；
+组合根显式注入 store 并调用 `restore()`；设置面板 Key 留空＝沿用已保存密钥，诊断只多一个布尔 `stored`；
+“断开”同时删除本机文件。`.gitignore` 增加 `ai_credentials.json` 兜底。
+
+**只有组合根能决定写盘**：`RuntimeModelConfiguration` 不再有隐式默认 store，传 null 即纯内存。
+这条是在本轮发现的测试污染后加的：设置面板测试用 `Runtime.new()` 会把合成凭据写进真实的
+`user://ai_credentials.json`，既污染玩家密钥又让后续 `restore()` 误判“已配置”（日志里出现
+`AIRPG_NPC_AI: ready`）。现在测试运行不再产生该文件，已清掉被写入的合成文件；真实用户目录当时是干净的。
+
+验证：架构 204 个源/场景文件 + 3 项负向用例、导入与启动标记；`AIRPG_TESTS` 见本轮等价驱动结果，
+其中 NPC_AI 100→111 新增：缺失文件上报、写入/读回、重启后 `restore` 成功、诊断不含 Key、
+Key 留空复用已保存凭据、损坏文件失败关闭、控制字符拒收、断开删除文件。未使用真实 Key（测试用合成字符串）。
+
+未实现/待复核：明文存储的风险取舍（个人原型可接受，分发前必须改服务端转发）、Windows 凭据管理器集成、
+多账户/多端点管理、密钥轮换提醒。复核重点：任何新代码路径是否可能在日志、诊断或导出包中出现 Key，
+以及 `user://` 与项目目录的边界是否仍成立。
+
+## 问两句就卡住：失败锁死自由输入（2026-10-04）
+
+用户补充“问两句就会卡住”。定位到根因：`DialogueRequestRegistry` 只允许同时一个在途请求，而
+`dialogue_chrome.render` 在 `FAILED / PAUSED / CANCELLED` 把输入框设为不可编辑、提交按钮禁用，只留“重试”。
+于是**模型回复一旦被拒或超时，玩家就无法再提问**，只能重发同一句或返回——第一次正常、第二次被拒，
+就停在失败态，感受即“问两句就卡住”。上一轮新增的按角色输出硬校验把气泡预算设成「2 句 / 每句 40 字」
+并按句子计数，中文台词很容易越界，正好频繁触发这条路径。
+
+修复：输入只在 `WAITING`（等待回复）与 `PRESENTING`（播放中）锁定，`FAILED / PAUSED / CANCELLED` 都可继续提问，
+“重试”仍在旁边；气泡预算放宽为**3 句 / 每句 60 字**，人格提示词仍按角色卡要求短句，校验器只拦跑飞的长段落；
+提交被拒时打印 `AIRPG_DIALOGUE_REJECTED: <code>`。回归：NPC_AI `_multi_turn`（一条必被拒的回复之后，
+第二个问题仍被接受并可发布）与 I1 `_failure_keeps_conversation_alive`（失败态输入可用、新问题进入等待、
+能拿到第二次回答）。验证 `AIRPG_TESTS: 1068 checks, 0 failures`（I1 254→259，NPC_AI 97→100），
+架构 203 文件 + 3 负例、导入与启动通过。本轮验证时 Godot 测试进程又卡死一次（本机既有现象，位置每次不同），
+杀掉重跑即通过。
+
+## 对话卡住与“共用一个对话”（2026-10-04）
+
+用户反馈：对话经常卡住、两个 NPC 像共用一个对话，并要求查看游戏日志。工作包：对话可退出性与每角色会话隔离 /
+负责人本任务 / 独立对抗复核待分配；分支 `feature/held-inventory-item`，未推送。完整说明见
+[docs/dialogue-stuck-and-session-isolation.md](dialogue-stuck-and-session-isolation.md)。
+
+日志结论：本机实际日志在 `%APPDATA%\Godot\app_userdata\AIRPG\logs\`，最近 4 次启动只有 `AIRPG_BOOT_READY`
+与 `AIRPG_STRUCTURE_WALK_READY`——**此前 NPC 对话路径一条日志都不写**（`configure_ai` 失败只写内存字段），
+所以无法从旧日志复盘。另有一个关键事实：API Key 只存在于当前进程内存，每次启动都要在“设置”重新填写；
+未配置时按 F 得到的是固定问候框（无自由输入），容易被感受为“卡住”。
+
+修复：`dialogue_chrome.render` 之前只在 FAILED/PAUSED/CANCELLED 显示“返回”，等待期间输入被锁、鼠标已释放、
+移动被阻断却没有可见出口（请求最长等 60 秒）。现在“返回”在所有状态可见。新增
+`DialogueView.begin_conversation(name_key, portrait_id)`：换人时清空上一位的台词、选项与错误状态，
+立即写上当前 NPC 名牌与立绘，并在历史面板插入本地化分隔行；`ManorNpcAi.begin` 每次开始对话时调用它。
+新增 `application/dialogue/dialogue_memory.gd`：按 NPC 归属的近期记忆（默认最近 6 行、超长截断、重试不重复），
+`DialogueUseCase` 只注入当前说话人的记忆，因此艾米利亚的对话不会进入玛丽的上下文，玩家原话仍走 `untrusted`。
+仍需共用的部分：一个会话只有一个主要对话对象（PRD §9.5），历史面板仍是会话级总记录（现在有分隔行）。
+
+新增日志标记（不含密钥/提示词/模型原文）：`AIRPG_NPC_AI: ready|<code>`、`AIRPG_NPC_DIALOGUE_OPEN: <speaker> @ <topic>`、
+`AIRPG_NPC_DIALOGUE_REJECTED`、`AIRPG_NPC_DIALOGUE_CLOSE`、`AIRPG_DIALOGUE_STATE: <state> <error_code>`。
+测试日志里出现 `AIRPG_NPC_AI: AI_NOT_CONFIGURED` 属预期：它证明生产装配已成功加载并校验世界书与角色卡，
+只是没有配置 Key（`create_transport` 在内容校验之后）。
+
+验证：`& ./artifacts/verify_equivalent.ps1` 三步通过；架构 203 个源/场景文件 + 3 项负向用例；
+`AIRPG_TESTS: 1060 checks, 0 failures`（I1 246→254，NPC_AI 94→97）。新增覆盖：idle/waiting 状态“返回”可见、
+`begin_conversation` 清空上一位台词与选项并立即换名牌、历史出现会话分隔、艾米利亚的近期记忆回到她自己的下一次请求
+而玛丽的下一次请求不含她的任何一行。一次 Godot 测试进程再次卡死（本机既有现象），杀掉重跑即通过。
+
+未实现/待复核：关键记忆（结构化事件）、关系摘要、跨场景记忆、完整历史导出、对话中途存档；
+`recent_dialogue` 只覆盖最近 6 行。复核重点：换人时挂起请求取消是否彻底、分隔行在长会话中的可读性、
+60 秒等待期间的可取消体验、以及状态日志在正式构建中的噪声量。
+
+## 庄园 NPC 接入角色卡与世界书（2026-10-03）
+
+用户交付 `死光_角色卡_艾米利亚与玛丽_AI接入版.md`（微信临时目录）与 `《死光》AIRPG世界书整理版.docx`
+（Downloads），要求把两个角色接进书房与接待室 NPC，并把世界书接入。用户确认：艾米利亚→书房、玛丽→接待室；
+范围为“内容 + 提示词 + 知识白名单”，信任增减、逆鳞强制断对话、失谐波纹 UI、行为树、检定公式留作后续。
+工作包：NPC 角色卡 + 世界书接入 / 负责人本任务 / 独立对抗复核待分配；分支 `feature/held-inventory-item`，
+未推送。完整说明见 [docs/npc-characters.md](npc-characters.md) 与
+[ADR 0011](adr/0011-npc-character-cards-and-worldbook.md)。
+
+数据：`data/ai/npc_characters.zh_CN.json`（两张角色卡：人格模板、状态枚举与初值、信任/恐惧上限、禁用句、
+气泡预算、立绘 ID）与 `data/ai/deadlight_worldbook.zh_CN.json`（13 节世界书条目，保留来源文档的
+公开/调查/隐藏/运行分层与受众），各自配 JSON Schema，再经领域校验器。事实正文与 text_key 同处
+受校验数据文件；玩家可见文本（两个名字、问候、兜底台词、现场观察）仍在 `zh_CN.json`。
+
+实现：`CharacterCard` / `WorldBook` / `ReplyPolicy` 三个新领域模块；世界书派生 F1 fact 时取
+“受众 ∩ 本场景说话人”，每条条目只产出一条 fact；`hidden`/`running` 层禁止携带 NPC 受众（构造期拒绝，
+测试固化），因此叙事者层不可能被误接给 NPC。请求构建器新增可选人格注入，占位符在构造期校验；
+`ReplyValidator` 新增可选角色输出策略（禁元层暴露、玛丽禁可证伪否定句、艾米利亚禁顺从式自我标签、
+最多两句且每句 ≤40 字，动作描写用圆括号单独成行），拒绝一律按可重试失败处理。话题 ID 取玩家当前房间
+（`manor.room.<room>`）以过滤记忆碎片；现场观察（玩家在场、谁在附近）由注入的 observer 提供。
+
+站位与译名：玛丽在庄园接待室对应她潜入销毁证据的场景 B（她本章初始岗位仍在加油站），已在文档显式记录；
+世界书写“韦伯”、角色卡写“韦布”，工程统一用**韦伯**；孙女“艾米利亚”与祖母“艾米莉亚”未合并。
+说话人 ID 由 `preview_*` 改为 `mary` / `emilia`（F1 要求小写 ID），本地化键、测试与截图脚本同步更新。
+
+验证：等价三步（架构、导入、聚合测试与启动标记）`& ./artifacts/verify_equivalent.ps1`。
+架构检查 202 个源/场景文件 + 3 项负向用例通过；`AIRPG_TESTS: 1049 checks, 0 failures`
+（BASE 95 / G1 138 / F1 174 / NPC_AI 94 / I1 246 / ARCHIVE 62 / MANOR 118 / NPC_RIG 15 / CHARACTER 38 /
+INTERACTION 69）；启动标记 `AIRPG_BOOT_READY` 通过。NPC_AI 由 35 升到 94，新增内容专项覆盖：
+角色卡 Schema 与领域校验、占位符缺失被拒、世界书分层与受众、narrator 层安全不变量、跨 NPC 知识不串、
+披露门开合、房间碎片过滤、禁用句与允许句、气泡预算、人格渲染与事实同请求、端到端“禁用句回复不进入视图”。
+未使用真实 API Key，未发生外部模型调用；本机既有环境噪声（根证书读取、沙箱下编辑器设置写入）按既有做法登记。
+
+未实现/待复核：信任与恐惧增减、逆鳞强制结束对话与沉默、`LIE_TELL` 失谐波纹、玛丽的自主行为树与
+可见位置变化、比利指认/枪口对峙等缺失对话节点、立绘资源、AI 主持人（叙事者层已作为数据保存但无消费者）、
+开场动画与加油站场景。输出校验是字符串启发式而非语义证明；玛丽的提示词按角色卡包含真相（演出“只说真话
+只回避”所必需），风险由事实目录不含真相 + 禁用句校验 + 未实现的坦白门共同承担。
+对抗复核重点：跨 NPC 知识是否真的不串、被追问“匣子里是什么”时她是否只说不知道、
+披露门被误开后是否会泄露、禁用句是否被改写绕过、以及 40 字/两句预算对实际气泡的适配。
+
+## 预览 NPC 换成基础绑定模型（2026-10-03）
+
+用户给出 `output/npc_basic_rig/mujer_sexy_rigged.glb`，要求用它替换游戏书房 NPC 建模；在被明确告知
+`docs/npc-rig-preview.md` 记录的许可见解（该资产标 Sketchfab Standard，原先只留在本机、不进公开仓库）后，
+用户选择「直接提交进仓库」并把范围扩到两个预览 NPC。工作包：庄园 NPC 视觉替换 / 负责人本任务 /
+独立对抗复核待分配；分支仍为主工作区当前的 `feature/held-inventory-item`，未推送。
+
+资产：`game/presentation/manor/npc_preview_basic_rig.glb`，与交付文件逐字节一致（SHA-256
+`905fb38d…08e3`，2 478 900 字节，23 骨、六段动作），Godot 抽取出的贴图 `npc_preview_basic_rig_Image_0.jpg`
+（500 448 字节，SHA-256 `65cb23dc…f479`）与两个 `.import` 一并入库。上游网格/贴图来自
+`mujer_sexy.glb`（SHA-256 `78ae294f…4ad2`）。
+
+实现：`NpcActor` 的视觉、骨架路径、骨数与「状态→动作」映射集中为常量；`talk` 映射到 `idle`，因为绑定包
+没有交谈动作，交谈时保持站姿循环并转向玩家（不假装有交谈演出）。`_play_clip` 不再对已经在播的同一个
+动作重新调用 `play()`。移除了按装配数据给外套上色的代码与名单里的 `color` 字段：新模型只有一张带贴图的
+整体材质，改色会连皮肤和头发一起染色，身份区分继续由悬浮名牌承担。原来的程序几何占位模型
+`npc_preview_public.glb` 与生成脚本保留在仓库但不被引用，可作回退视觉。
+
+本轮发现并规避的引擎问题：真实图形窗口下按 F 触发问候后，若该演员刚刚「重复播放了当前正在播的动作」
+再释放场景，Godot 4.7.2 会 `CrashHandlerException: signal 11` 退出（退出码 -1073740771）。排除过程：
+同一条截图命令换成旧的 17 骨占位模型不崩；`talk` 临时映射到另一个动作不崩；保留映射但跳过「重播已在
+播的动作」不崩；不释放场景只 `quit()` 也不崩。无头测试套件未复现该崩溃，因此守卫落在行为断言上
+（「共用动作的状态不重播该循环」），复现命令保留在 `docs/npc-rig-preview.md`。崩溃发生在截图落盘之后，
+不影响产物，但属于同一场景释放路径，故按真实缺陷处理。
+
+验证：`scripts/verify.ps1` 在本机仍被既有环境问题挡在导入步骤（Godot 读不到 Windows 根证书库；
+沙箱下无法写 `%APPDATA%\Godot` 的编辑器设置）。按本文件既有做法改用逻辑等价驱动
+`artifacts/verify_equivalent.ps1`（同参数、同错误正则、同完成标记与套件标记，只登记这两行环境噪声，
+`APPDATA` 指向 `artifacts/godot-appdata`）：架构检查 197 个源/场景文件、3 项负向用例、资源导入、
+启动标记通过；`AIRPG_TESTS: 990 checks, 0 failures`（BASE 95 / G1 138 / F1 174 / NPC_AI 35 / I1 246 /
+ARCHIVE 62 / MANOR 118 / NPC_RIG 15 / CHARACTER 38 / INTERACTION 69）。改动前基线为 987 项零失败，
+NPC_RIG 由 12 升到 15。真实图形窗口 RTX 4060 截图 `artifacts/npc_study.png`、
+`artifacts/npc_study_greeting.png` 已核对：书房 NPC 站位、身高 1.75 米、贴图、名牌、按 F 后的固定问候
+与面对玩家朝向均正常；`capture_main.gd` 新增 `study` / `study_talk` 两个模式用于复查。
+
+未实现/待复核：绑定包的 `run`、`sit_down`、`sit_idle`、`stand_up` 四段动作未使用，坐姿需要椅面锚点与
+就座行为；没有交谈动作、面部、手指或 IK；50k 三角面加入后的绘制开销、多 NPC 同屏、导出包内的蒙皮与
+贴图、以及许可取舍在上架前是否必须换回经批准的角色美术均未验收；独立对抗复核待分配。工作区里另有
+其他任务留下的未跟踪草稿 `game/presentation/manor/mujer_sexy.glb`、`npc_preview_rigged.glb`（17 骨旧
+绑定尝试）与 `scripts/assets/build_npc_preview.py`，本轮未改动、未提交，已由本资产取代，可由其负责人
+清理。本轮未推送、未发布、未变更 PRD。
+
+## NPC AI 输入 API 合入桌面主工程（2026-10-03）
+
+用户要求把 `codex/npc-ai-input-api` 合入 `C:/Users/31286/Desktop/AIRPG/game` 并一同推送。
+目标分支为桌面主工程当前的 `feature/held-inventory-item`；远端同名分支同步前仍停在基线 e41553fb，
+没有并发提交。先把工作区中已完成且直接相关的撬棍拾取/持有/丢弃展示提交为 8d210a40，随后以
+3d7b9ba5 合并 NPC AI 分支（包含 7544e975 功能提交与 78891f47 API 面板自适应修复）。
+
+合并自动保留 `manor_play.gd` 的两侧改动：运行时掉落物仍使用稳定交互 ID，节点名使用合法下划线；
+同一庄园场景同时装配 AI 对话、语义锚点动作和现有物品交互。未引用的 `mujer_sexy`、
+`npc_preview_rigged` 模型、`output/` 草稿、`docs/worktree-cleanup.md` 与资产构建草稿未纳入提交或推送。
+
+合并后原样运行 `./scripts/verify.ps1 -Godot D:/Godot/Godot_v4.7.2-stable_win64_console.exe`：
+架构检查 197 个源/场景文件与 3 个负向用例通过，资源导入和启动检查通过，聚合
+`AIRPG_TESTS: 987 checks, 0 failures`；其中 NPC-AI 35、G1 138、F1 174、I1 246、交互 69。
+未使用真实 API Key 或外部模型调用，真实 DeepSeek 联调边界不变。
+
+## 输入 API 模式的 NPC AI 纵向切片（2026-10-03）
+
+用户选择在游戏内输入 API 配置并要求开始实现。工作包 AFGCI-NPC-AI / 负责人本任务 / 独立对抗复核待分配；
+分支 `codex/npc-ai-input-api`，managed worktree `C:/Users/31286/.codex/worktrees/npc-ai-input-api/AIRPG`，
+基线 e41553fb。主工作区已有用户改动，未写入、覆盖或暂存；本工作树整合 F1、G1、I1 已完成提交后完成纵向接线。
+
+实现：开始界面“设置”新增 API 地址、模型 ID、API Key 输入与断开入口；Key 提交后清空输入框，只保存在
+本次进程内的运行时凭据，不进入诊断/资源/存档/日志。`ChatCompletionRequestBuilder` 把 F1 过滤上下文编译为
+system/user messages，权威 fact key 在发送前解析为审核正文；`ChatCompletionGateway` 适配 G1 完成信封、缓存并
+解析严格 JSON，拒绝非 stop 结束且不把 raw delta 连接 UI。版本化 prompt 和 Schema 位于 `data/ai/`、
+`data/schemas/`。G1 同时修正 `HTTPClient.request_raw`、忽略暂停/时间缩放的超时、同步回调登记顺序、release 取消、
+endpoint 控制字符和生成参数白名单。
+
+NPC 动作：F1 每个回复最多接受一个动作；`NpcActionContract` 绑定 session/request/revision/speaker/scene，禁止坐标。
+庄园场景只接受 `npc.stay`、`npc.face_player`、`npc.move_to_anchor(anchor_id)`；`NpcActionDriver` 把该 NPC 的白名单
+锚点映射成 Vector3 后交给 `NpcActor`。陌生锚点、跨 NPC 锚点、额外字段、动作拒绝、取消和过期结果均不显示回复。
+移动到达/卡住由角色控制器处理，提示词禁止把移动意图说成已经抵达。对话输入聚焦时 F/E 不再误触游戏快捷键。
+
+范围边界：`preview_reception`、`preview_study`、观察文本、锚点和回复夹具均为合成工程预览，不是正式人物或剧情；
+未实现正式角色卡/知识包、自然语言语义证明、真实服务商调用、长期记忆、语音、路径规划、动作完成回调对话、
+额度/计费 UI、剧情/检定/物品提交或存档恢复。设置中的“已配置”只代表本地校验通过，首次对话才实际请求。
+
+验证：`./scripts/verify.ps1 -Godot D:/Godot/Godot_v4.7.2-stable_win64_console.exe` 原样通过；架构 195 文件与
+3 个负向用例通过，资源导入、启动标记均通过；API 面板自适应修复后的聚合为
+`AIRPG_TESTS: 972 checks, 0 failures`，其中 G1 138、F1 174、NPC-AI 35、I1 246。NPC-AI 离线用例覆盖 Key 不进诊断、控制字符 URL、原始流隔离、截断响应、取消、事实正文解析、精确动作合同、
+错误类型、会话/场景/版本门槛、同步完成竞态、坐标注入、锚点白名单和完整回复/动作流水线。没有使用真实 Key 或网络请求。
+
+对抗复核重点：恶意玩家文本能否诱导模型泄露未投影事实；回复正文是否暗含未列 fact ID 的新增事实；供应商
+返回 JSON mode 差异、SSE 断流与限流行为；Key 在崩溃转储/系统内存中的威胁；NPC 卡住、玩家阻挡和场景退出时
+动作生命周期；正式内容接入时每个 NPC 的事实/锚点最小权限。完整决策和试玩说明见 ADR 0009 与
+`docs/npc-ai-input-api.md`。
+
+后续实机反馈与修复：用户在 1530×1110 窗口截图中发现设置内容继承大字号后超出固定居中面板，模型与
+API Key 字段落到屏幕下方。面板现改为视口内四边留白布局，正文、标签、输入框和按钮使用明确字号与高度，
+内容置于纵向 `ScrollContainer` 并跟随键盘焦点；同分辨率图形渲染截图
+`artifacts/ai-settings-responsive.png` 已确认三个输入框与断开/返回/连接按钮同时可见。截图只作本机验证，
+位于忽略目录；测试捕获脚本新增 `settings` 模式以便复查。
+
+## F1 对话安全边界（2026-09-26）
+
+分支 `feature/f1-dialogue-boundary`，worktree 在仓外独立目录，基线 `integration/slice-wiring@34ff473`。只新增 `game/domain/dialogue/`、`game/application/dialogue/`、`game/tests/f1/`，未改 Composition、公共契约/端口、G1 适配器、I1 视图、StateStore、Schema、本地化和测试聚合入口。
+
+F1 现在是 G1 与 I1 之间的应用边界：按 NPC/场景/话题/透露条件投影权威事实，把玩家原话、笔记和传闻放进显式 `untrusted` 字段后交给 `ModelProvider`；模型完成回复必须通过结构、说话者、事实和动作目录校验，才转换成 `DialogueViewContract.verified_reply`。取消、过期版本、重复完成、错误 request/speaker 的结果一律不显示；失败不写状态、不消耗物品、不提交骰点、不连接 `raw_delta`。
+
+验证：`AIRPG_F1_TESTS`（`tests/f1/run_f1_tests.gd`）174 项 0 失败；架构检查 104 个源文件通过；`./scripts/verify.ps1` 既有 663 项聚合 0 失败且真实主场景启动通过。F1 套件尚未登记进 `tests/run_tests.gd`（禁止功能分支修改），需集成负责人登记。
+
+对抗复核修复：AIRPG-F1-001（非权威事实绕过受众过滤）：`knowledge_facts.untrusted_for` 现已对玩家陈述/传闻应用与权威事实相同的 speaker/scene/topic/透露条件过滤，仅改变信任级别；AIRPG-F1-002（可伪造验证标记）：`ReplyValidator` 返回密封的 `ValidatedReply` 类型，`DialoguePublication.build` 只接受该类型，普通字典（含手写 `validated` 字段）与未密封实例一律拒绝。QA 的 4 项断言全部保留并通过。
+
+未实现：真实 DeepSeek 调用、正式《死光》事实与台词、G1 `completed.content` 到回复 DTO 的解析接线、Composition 装配、I1 生产接线、剧情状态结算/笔记写入、长期记忆摘要。事实文本目前只带 `text_key`，未接本地化解析。
+
+下一步接线：集成负责人登记 F1 套件；Composition 用显式配置构造 `DialogueUseCase`（session、StateStore 只读快照、provider、上下文源、事实目录、动作目录、speaker 档案），I1 用 `configure(use_case)` 连接；G1 侧需在 `completed` 后用 F1 回复 DTO 解析/校验 `content`，prompt/messages 组装与事实文本解析仍需单独评审。
 ## 本轮：音频总线 + 第一遍 12 项接线（2026-10-04）
 
 分支 `feature/manor-props-v4`，工作目录 `D:\AIRPG\airpg_v3`。**未 commit、未 push。**

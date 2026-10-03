@@ -1,4 +1,4 @@
-﻿extends SceneTree
+extends SceneTree
 const MAIN = preload("res://bootstrap/main.tscn")
 const PLAY = preload("res://bootstrap/manor_play.tscn")
 const JsonFile = preload("res://infrastructure/content/json_file.gd")
@@ -30,6 +30,10 @@ const PROPS_VIEWS: Dictionary = {
 ## Where the prying itself is posed from: standing on the boards, looking down their length.
 const PRY_STAND := Vector3(-5.15, 0.0, -11.00)
 const PRY_AIM := Vector3(-5.15, 0.0, -9.89)
+## NPC stills: mode -> [npc_id, hold greeting pose]. Study is the doctor's study, reception is the
+## manor reception; the *_talk variants also open the greeting so the caption layer is visible.
+const NPC_MODES: Dictionary = {"study": ["emilia", false], "study_talk": ["emilia", true],
+	"reception": ["mary", false], "reception_talk": ["mary", true]}
 
 func _initialize() -> void:
 	call_deferred("_capture")
@@ -44,16 +48,35 @@ func _capture() -> void:
 		return
 	var main := MAIN.instantiate()
 	root.add_child(main)
-	main._navigate("story_archive")
-	await create_timer(0.6).timeout
-	if args.size() > 1 and args[1] != "archive":
-		var result = main._services.story_archive.request_start("deadlight")
-		assert(result.ok)
-		var play = main.get_node("SceneHost").get_child(0)
-		play.player.place_at(Vector3(-4.9, 0.08, -1.64), -PI / 2)
-		await create_timer(0.4).timeout
-		if args[1] == "dossier":
-			play.character_hud.set_open(true)
+	var mode: String = args[1] if args.size() > 1 else "archive"
+	if mode == "settings":
+		# The AI connection overlay sits on the home screen, so no route is entered for it.
+		var home: Control = main.get_node("SceneHost").get_child(0)
+		home._open_settings()
+	else:
+		main._navigate("story_archive")
+		await create_timer(0.6).timeout
+		if mode != "archive":
+			var result = main._services.story_archive.request_start("deadlight")
+			assert(result.ok)
+			var play = main.get_node("SceneHost").get_child(0)
+			play.player.place_at(Vector3(-4.9, 0.08, -1.64), -PI / 2)
+			if NPC_MODES.has(mode):
+				# Stand in front of the named actor; the *_talk modes also hold its greeting pose.
+				await create_timer(0.3).timeout
+				var npc_id: String = NPC_MODES[mode][0]
+				var target: Node3D = null
+				for actor: Node3D in play.npc_actors:
+					if actor.npc_id == npc_id:
+						target = actor
+				assert(target != null)
+				play.player.place_at(target.position + Vector3(-1.8, 0, 0), -PI / 2)
+				await create_timer(0.3).timeout
+				if NPC_MODES[mode][1]:
+					play._open_greeting()
+			await create_timer(0.4).timeout
+			if mode == "dossier":
+				play.character_hud.set_open(true)
 	await create_timer(0.4).timeout
 	await RenderingServer.frame_post_draw
 	var result: Error = root.get_texture().get_image().save_png(args[0])

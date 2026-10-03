@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIRPG NPC character card v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "cards"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "source": {"type": "string", "minLength": 1},
+    "cards": {
+      "type": "array", "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["character_id", "display_name_key", "greeting_key", "fallback_line_key",
+          "portrait_id", "initial_state", "state_enum", "initial_trust", "trust_max",
+          "initial_fear", "fear_max", "initial_values", "taboo_triggers", "reply_policy",
+          "persona_template"],
+        "properties": {
+          "character_id": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+          "display_name_key": {"type": "string", "minLength": 1},
+          "greeting_key": {"type": "string", "minLength": 1},
+          "fallback_line_key": {"type": "string", "minLength": 1},
+          "portrait_id": {"type": "string"},
+          "initial_state": {"type": "string", "minLength": 1},
+          "state_enum": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1}},
+          "initial_trust": {"type": "integer", "minimum": -5, "maximum": 100},
+          "trust_max": {"type": "integer", "minimum": 1, "maximum": 100},
+          "initial_fear": {"type": "integer", "minimum": 0, "maximum": 100},
+          "fear_max": {"type": "integer", "minimum": 1, "maximum": 100},
+          "initial_values": {
+            "type": "object", "maxProperties": 16,
+            "additionalProperties": {"type": "string", "minLength": 1}
+          },
+          "taboo_triggers": {"type": "array", "maxItems": 16, "items": {"type": "string", "minLength": 1}},
+          "persona_template": {"type": "string", "minLength": 1},
+          "reply_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["max_dialogue_lines", "max_line_length", "forbidden_phrases"],
+            "properties": {
+              "max_dialogue_lines": {"type": "integer", "minimum": 1, "maximum": 8},
+              "max_line_length": {"type": "integer", "minimum": 1, "maximum": 200},
+              "forbidden_phrases": {"type": "array", "maxItems": 32,
+                "items": {"type": "string", "minLength": 2}}
+            }
+          }
+        }
+      }
+    }
+  }
+}

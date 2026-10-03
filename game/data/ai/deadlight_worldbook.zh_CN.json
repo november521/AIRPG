@@ -1,0 +1,430 @@
+{
+  "schema_version": 1,
+  "source": "《死光》AIRPG世界书整理版.docx（用户 2026-10-03 交付）",
+  "entries": [
+    {
+      "entry_id": "world.era.new_england",
+      "layer": "public", "section": "一、时代与世界背景",
+      "keywords": ["1920年代", "阿卡姆", "新英格兰", "乡村"],
+      "text_key": "worldbook.world.era.new_england",
+      "text": "故事发生在 20 世纪 20 年代的美国新英格兰地区，地点在阿卡姆郊外、通往博尔顿方向的园林大道一带。现代通讯与基础设施已经存在，但乡村地区仍高度依赖汽车、电话、电灯和独立供电，恶劣天气足以让一小片区域迅速与外界隔绝。绝大多数普通人并不知道超自然力量真实存在；阿卡姆、邓尼奇及周边乡村却藏着少量世代相传的秘密、禁忌知识和无法用现代科学解释的存在，它们藏在家族传统、私人日记、地方传说、古怪仪式和遗物里。",
+      "speakers": [], "public_scene": ["manor"], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "world.storm.night",
+      "layer": "public", "section": "二、故事时间与环境状态",
+      "keywords": ["暴雨", "夜晚", "黎明", "封锁"],
+      "text_key": "worldbook.world.storm.night",
+      "text": "整个故事发生在一个风暴肆虐的夜晚。暴风雨至少还会持续数小时，直到黎明前后才可能缓和。电话线路中断，道路泥泞、积水、能见度极差，倒木、泥石流和失控车辆都可能封路。驾车离开存在严重失控风险；徒步穿过森林则面临迷路、受寒、跌伤和被死光捕食的危险。黎明是天然的时间节点：真正要解决的问题不是“完成任务”，而是如何活过这一夜。夜越深，死光袭击可以越频繁，NPC 情绪越容易失控，可安全移动的路线越少。",
+      "speakers": [], "public_scene": ["manor"], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "world.place.orchard_run",
+      "layer": "public", "section": "3.1 园林大道 Orchard Run",
+      "keywords": ["园林大道", "公路", "树林", "废弃苹果园"],
+      "text_key": "worldbook.world.place.orchard_run",
+      "text": "园林大道是一条穿过阿卡姆郊外乡村地区的道路，两侧原本有大片苹果园，如今许多地方已经荒废，被榉木、常春藤和杂生植物取代。晴天时景色普通，但在风雨交加的夜色中会变成方向感极差、行动困难的黑暗走廊。典型视觉元素包括黑暗树林、雨幕、闪电、积水路面、偶尔出现的车灯，以及无法确定来源的林间白光。",
+      "speakers": [], "public_scene": ["manor"], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "world.place.highway_encounter",
+      "layer": "public", "section": "3.2 暴雨公路首次遭遇点",
+      "keywords": ["艾米利亚", "公路女人", "首次遭遇"],
+      "text_key": "worldbook.world.place.highway_encounter",
+      "text": "驾车经过暴雨中的园林大道时，一个苍白的人影突然出现在车前。她是艾米利亚·韦伯：浑身湿透、衣物被树枝划破，身上有淤青并明显受寒，精神处于惊吓和恍惚状态。她刚刚从绿苹果庄园逃出，却无法立刻完整说明发生了什么，只可能断续提到祖父、闯入者、枪声和某种可怕的“光”。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "world.place.gas_station",
+      "layer": "public", "section": "3.3 园林大道加油站与咖啡馆",
+      "keywords": ["加油站", "咖啡馆", "避难所", "萨姆", "玛丽", "杰克"],
+      "text_key": "worldbook.world.place.gas_station",
+      "text": "附近有一座规模不大的加油站与咖啡馆，包含单泵加油站、办公室、车库、咖啡馆、厨房、厕所和停车区。暴雨期间这里暂时成为陌生人聚集的避难所，能见到萨姆·凯尔汉、玛丽·雷克、泰迪与维尼弗雷德·布鲁尔夫妇和杰克·邦恩斯。电话已经因为风暴失效，道路还可能被杰克失控的卡车部分堵塞。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "world.place.greenapple_manor",
+      "layer": "public", "section": "3.4 绿苹果庄园 Greenapple Acre",
+      "keywords": ["绿苹果庄园", "韦伯家", "乡村住宅"],
+      "text_key": "worldbook.world.place.greenapple_manor",
+      "text": "绿苹果庄园坐落在园林大道附近山坡背面的树林中，位置相对隐蔽，目前由退休医生戈弗雷·韦伯与孙女艾米利亚居住。住宅是一栋翻新过的单层乡村住宅，包含接待室、厨房与餐厅、艾米利亚卧室兼书房、韦伯医生卧室、韦伯医生书房、卫生间、门廊，以及通往大型干燥地窖的楼梯；后方另有作为车库使用的小型谷仓。",
+      "speakers": [], "public_scene": ["manor"], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "world.place.reception_scene",
+      "layer": "investigation", "section": "3.5 庄园接待室",
+      "keywords": ["尸体", "争斗", "金属匣", "骨灰"],
+      "text_key": "worldbook.world.place.reception_scene",
+      "text": "接待室是抢劫冲突与死光被释放的核心现场：有明显争斗痕迹，能发现韦伯医生与克莱姆·泰勒的尸体、一支使用过的枪械、粗糙面罩，以及一个被强行打开的古怪金属匣。韦伯医生肩部中枪，但真正死因并不完全等同于枪伤；克莱姆的尸体表现出强烈的异常破坏。金属匣内部带有铅层，并残留大量类似骨灰的白色粉末。",
+      "speakers": [], "public_scene": [], "scenes": ["manor"], "topics": ["manor.room.reception"], "conditions": [{"flag": "clue.reception_seen", "equals": true}]
+    },
+    {
+      "entry_id": "world.place.doctor_study",
+      "layer": "investigation", "section": "3.6 韦伯医生书房",
+      "keywords": ["日记", "秘密文件", "医疗档案"],
+      "text_key": "worldbook.world.place.doctor_study",
+      "text": "书房保存着大量医疗资料、私人信件、地方资料、博物学书籍和个人档案。一个上锁的抽屉里藏有现金、存折、私人文件，以及最关键的黑皮日记。日记记录了有关死光的操控方法与韦伯家族长期使用它的痕迹，是理解整个事件真相的核心证据。",
+      "speakers": [], "public_scene": [], "scenes": ["manor"], "topics": ["manor.room.doctor_study"], "conditions": [{"flag": "clue.diary_found", "equals": true}]
+    },
+    {
+      "entry_id": "world.place.cellar",
+      "layer": "investigation", "section": "3.7 地窖",
+      "keywords": ["地窖", "发电机", "电流", "陷阱"],
+      "text_key": "worldbook.world.place.cellar",
+      "text": "地窖面积较大、干燥，堆放包装箱、旧物和工具，最重要的是一套可工作的家用发电系统。如果通过观察发现死光畏惧雷电，就可以进一步推理电流是其弱点，并利用发电机、电线、裸露导体、金属结构、积水和诱饵搭建临时电击陷阱，把死光强行送回其原本维度。",
+      "speakers": [], "public_scene": [], "scenes": ["manor"], "topics": ["manor.room.cellar"], "conditions": [{"flag": "clue.cellar_seen", "equals": true}]
+    },
+    {
+      "entry_id": "character.emilia.public",
+      "layer": "public", "section": "4.1 艾米利亚·韦伯",
+      "keywords": ["艾米利亚", "Emilia", "韦伯孙女", "挂坠"],
+      "text_key": "worldbook.character.emilia.public",
+      "text": "艾米利亚 23 岁，身材偏瘦，黑色头发，眼睛是极浅的灰色，受过良好教育。事件开始时她浑身湿透、衣物破损、身体多处淤青并严重受寒。她忠诚、善良，相信科学，非常在意祖父。她不会主动欺骗玩家，但巨大的精神刺激使她暂时无法完整回忆庄园里的事。她戴着一枚银质古老金币形挂坠，是祖父送的礼物，上面有她不认识的古老文字。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.godfrey_webb.public",
+      "layer": "public", "section": "4.2 戈弗雷·韦伯医生",
+      "keywords": ["韦伯医生", "戈弗雷", "Godfrey Webb"],
+      "text_key": "worldbook.character.godfrey_webb.public",
+      "text": "约 70 岁的退休乡村医生，当地声望极高。长期行医，务实、克制、守旧，因严格保守病人秘密而受到一些古老家族的信赖。他积累了可观财富，与孙女艾米利亚一起住在绿苹果庄园。",
+      "speakers": ["emilia", "mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.mary.public",
+      "layer": "public", "section": "4.3 玛丽·雷克",
+      "keywords": ["玛丽", "Mary Lake", "女服务员"],
+      "text_key": "worldbook.character.mary.public",
+      "text": "玛丽约 19 岁，是园林大道加油站咖啡馆的年轻女服务员，健康、漂亮、浅金色短发。她聪明、警惕、善于伪装、工于心计，极度以自身利益为中心。玩家初见她时，她只是显得紧张和心不在焉。这层公开印象里没有她与抢劫的关系。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.clem.public",
+      "layer": "public", "section": "4.4 克莱姆·泰勒",
+      "keywords": ["克莱姆", "Clem", "玛丽男友", "本地混混"],
+      "text_key": "worldbook.character.clem.public",
+      "text": "克莱姆·泰勒是玛丽的男朋友，当地小混混，经常和比利·伊斯特霍斯一起惹事。玛丽知道这些，也知道上个月她和克莱姆在店后面吵过架被萨姆看见了。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.clem.raid",
+      "layer": "hidden", "section": "4.4 克莱姆·泰勒",
+      "keywords": ["劫匪", "锯短枪管", "撬棍", "砸开封印"],
+      "text_key": "worldbook.character.clem.raid",
+      "text": "克莱姆与比利戴麻布面罩，携带锯短枪管的枪和撬棍前往韦伯庄园实施抢劫。冲突中韦伯医生中枪，艾米利亚被打昏；克莱姆寻找财物时发现古老金属匣，并强行砸开封印，从而释放了死光。玛丽不知道这段经过，她只以为出了人命。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.billy.public",
+      "layer": "public", "section": "4.5 比利·伊斯特霍斯",
+      "keywords": ["比利", "Billy", "树林疯子", "劫匪"],
+      "text_key": "worldbook.character.billy.public",
+      "text": "约 20 岁，本地混混，身体强壮但头脑简单，经常与克莱姆一起惹事。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.sam.public",
+      "layer": "public", "section": "4.6 萨姆·凯尔汉",
+      "keywords": ["萨姆", "Sam", "加油站经理"],
+      "text_key": "worldbook.character.sam.public",
+      "text": "约 48 岁的加油站经理，体型偏胖、头发稀疏、留粗大胡须。顽固、保守、喜欢发号施令，但本质并非恶人。萨姆认识大量本地居民，知道艾米利亚是谁，也知道玛丽与克莱姆是情侣、克莱姆和比利经常混在一起。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.jack.public",
+      "layer": "public", "section": "4.7 杰克·邦恩斯",
+      "keywords": ["杰克", "Jack", "农夫", "死光目击者"],
+      "text_key": "worldbook.character.jack.public",
+      "text": "约 42 岁的附近村庄养猪农，粗鲁、迷信、嗜酒、暴躁。他在开车途中目击树林里的异常存在，因恐惧差点把卡车撞上加油站。正是杰克第一次把这个东西称为“死光”——这不是怪物真正的名字，只是目击者按外观起的描述性称呼。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "character.brewers.public",
+      "layer": "public", "section": "4.8 布鲁尔夫妇",
+      "keywords": ["泰迪", "维尼弗雷德", "布鲁尔夫妇"],
+      "text_key": "worldbook.character.brewers.public",
+      "text": "泰迪·布鲁尔 71 岁，维尼弗雷德·布鲁尔 68 岁，来自波士顿的普通退休中产夫妇，因为暴风雨被困在咖啡馆。他们不知道任何超自然秘密，也不是隐藏高手或邪教成员。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "deadlight.essence",
+      "layer": "hidden", "section": "5.1 本质",
+      "keywords": ["死光", "Dead Light", "球外生物", "食腐者"],
+      "text_key": "worldbook.deadlight.essence",
+      "text": "死光不是幽灵、恶魔，也不是地球生命。它来自无法被人类正常理解的异维度，更接近一种以生命能量和意识残留为食的球外食腐者。它没有人类可以理解的文明目标，当前阶段的根本驱动力非常简单：长期封印后的极端饥饿。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "deadlight.appearance",
+      "layer": "investigation", "section": "5.2 外观",
+      "keywords": ["银白色", "液态光", "浓稠墨水", "磷光"],
+      "text_key": "worldbook.deadlight.appearance",
+      "text": "死光大约两米长，通常漂浮在接近腰部的高度，没有固定解剖结构。外观类似被泼洒在空气中的银白色浓稠墨水，或在水中不断翻滚流动的水银；它会闪烁、脉动并散发冷白色磷光。不要把它表现成规则的发光球，更像一团具有生命的液态光。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": [{"flag": "clue.light_seen", "equals": true}]
+    },
+    {
+      "entry_id": "deadlight.behaviour",
+      "layer": "running", "section": "5.3 行为逻辑",
+      "keywords": ["猎食", "游荡", "追踪", "怪物AI"],
+      "text_key": "worldbook.deadlight.behaviour",
+      "text": "死光会在释放区域附近游荡，寻找人类，优先攻击落单目标。捕食后可能暂时离开进行“消化”，随后再次回来寻找新的猎物。它具有相当高的智慧，可以破坏车辆、毁灭光源、灭火、封锁逃跑路线，并从意想不到的方向发动袭击。它不是沿最短路径追人的普通游戏怪物。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "deadlight.emotion_lure",
+      "layer": "running", "section": "5.4 感知与情绪吸引",
+      "keywords": ["情绪", "恐惧", "绝望", "感知"],
+      "text_key": "worldbook.deadlight.emotion_lure",
+      "text": "死光的感官比人类敏锐，能够在完全黑暗中行动。强烈、复杂、烦恼性的情绪会让某个人更容易被它注意。恐惧、绝望、愤怒和精神崩溃都可以提高目标被关注的风险；角色越失控，越可能成为死光的优先猎物。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "deadlight.phase_shift",
+      "layer": "hidden", "section": "5.5 穿透与变形能力",
+      "keywords": ["穿墙", "铅", "变形", "无处可藏"],
+      "text_key": "worldbook.deadlight.phase_shift",
+      "text": "普通门窗、家具和墙壁无法长期保护玩家。死光能穿过大部分普通建筑材料，并能任意改变自身形态，压缩后钻进极窄空间。铅是明确有效的隔绝材料。锁门、躲柜子、堵住房门只能提供非常短暂的心理安全感，不能作为永久防御。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "deadlight.trance",
+      "layer": "running", "section": "5.6 催眠现象",
+      "keywords": ["凝视", "催眠", "恍惚", "无法移动"],
+      "text_key": "worldbook.deadlight.trance",
+      "text": "长时间直视死光会产生非自然吸引。受影响者可能无法移动、难以移开注意力、进入恍惚状态，甚至本能地接近它；距离越近，抵抗越困难。叙事上应体现“看得越久越危险”，而不是鼓励角色站在原地观察怪物细节。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "deadlight.weaknesses",
+      "layer": "hidden", "section": "5.7 弱点",
+      "keywords": ["日光", "电流", "雷电", "火焰"],
+      "text_key": "worldbook.deadlight.weaknesses",
+      "text": "日光：太阳升起后，死光与现实空间的联系会逐渐瓦解，最终被迫返回原本维度。强电流：足够强且稳定的电流能够破坏其与现实空间的关系，是夜间最可靠的主动解决方案。雷电：死光会对附近闪电表现出明显畏缩，是引导玩家发现电流弱点的重要环境线索。火焰：可以伤害死光，但效果较弱，而且死光足够聪明，会主动灭火。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "relic.lead_box",
+      "layer": "hidden", "section": "6.1 铅制金属匣",
+      "keywords": ["金属匣", "骨灰盒", "铅盒", "封印容器"],
+      "text_key": "worldbook.relic.lead_box",
+      "text": "这是一件在韦伯家族中保存许久的古老物品，外形类似大型骨灰盒，没有明显锁具，内部带铅制夹层、骨灰和异常封蜡。真正功能是封印死光。克莱姆强行砸开封印后，死光重新进入现实世界。艾米利亚只知道祖父叫它“令人毛骨悚然的骨灰盒”并告诫她永远不要碰，不知道它的真正用途。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "relic.sin_eater",
+      "layer": "hidden", "section": "6.2 “噬罪者”",
+      "keywords": ["噬罪者", "Sin Eater", "家族传统"],
+      "text_key": "worldbook.relic.sin_eater",
+      "text": "韦伯家族并不知道死光的真正来源或物种，只掌握一套利用方法。过去某些新英格兰古老家族把它称作“噬罪者”，秘密用于处理家族不愿公开存在的人或事，例如私生子、异常混血、畸形后代和其他会造成家族丑闻的生命。人类把无法理解的捕食者变成了一件杀人工具。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "relic.control_ritual",
+      "layer": "hidden", "section": "6.3 操控死光仪式",
+      "keywords": ["操控死光", "仪式", "血液", "螺纹印记", "咒语"],
+      "text_key": "worldbook.relic.control_ritual",
+      "text": "韦伯医生的日记记载了一种控制死光的方法：用血在预定受害者额头绘制特殊螺纹印记，念诵记录下来的球外语言咒文，并打开容器，死光会优先吞噬被标记者。进食完成后，可以再通过相应咒语将其束缚回容器。这是有效方法，但代价是主动牺牲一个活人，因此应作为道德选择而不是“正确答案”。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "relic.webb_sin",
+      "layer": "hidden", "section": "6.4 韦伯医生真正的罪恶",
+      "keywords": ["韦伯罪恶", "日记", "家族秘密"],
+      "text_key": "worldbook.relic.webb_sin",
+      "text": "韦伯医生并非第一次使用死光。日记留下多条跨越几十年的记录，可以被理解为利用死光秘密处理某些刚出生的孩子。更恐怖的是，这种行为并非韦伯个人发明，而可能是阿卡姆、邓尼奇及周边某些古老家族长期共享的“传统”。整个故事真正的恐怖不仅是外宇宙怪物，而是人类早已发现并世代利用它。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "timeline.true_events",
+      "layer": "hidden", "section": "七、事件真实时间线",
+      "keywords": ["时间线", "真相", "抢劫", "释放"],
+      "text_key": "worldbook.timeline.true_events",
+      "text": "过去数十年甚至更久，死光及其操控方法在某些新英格兰家族之间秘密流传；韦伯医生继承金属匣与仪式知识并在多年间秘密使用；他退休后与孙女艾米利亚住在绿苹果庄园。玛丽因嫉妒艾米利亚的财富策划抢劫韦伯家，让克莱姆和比利前往。韦伯祖孙反抗，韦伯医生中枪，艾米利亚被打昏，克莱姆寻找财物时发现并强行打开金属匣，死光被释放并袭击克莱姆，比利精神崩溃逃进树林，韦伯医生死亡，艾米利亚苏醒后逃出庄园。死光开始在园林大道附近捕食，杰克目击后惊慌逃到加油站，玩家驾车进入园林大道并遇见艾米利亚。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "relations.core",
+      "layer": "hidden", "section": "八、核心剧情关系",
+      "keywords": ["关系", "信息流向"],
+      "text_key": "worldbook.relations.core",
+      "text": "韦伯家族继承并使用死光；韦伯医生与艾米利亚是祖孙，构成情感核心；玛丽因嫉妒策划抢劫艾米利亚与韦伯家，并指使克莱姆和比利，是事件导火索；克莱姆砸开封印释放死光；比利目击后精神崩溃，是可移动证人；杰克目击并命名死光，提供早期异常证词；萨姆了解本地关系，是身份关系线索；玩家在全部事件中调查、生存并作选择。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "truth.layers",
+      "layer": "hidden", "section": "九、玩家逐层发现的真相",
+      "keywords": ["真相层级", "节奏"],
+      "text_key": "worldbook.truth.layers",
+      "text": "第 0 层完全未知：暴雨、公路、一个受伤女人。第 1 层异常：树林里存在来源不明的白光。第 2 层危险：白光会追踪并杀死人。第 3 层犯罪：有人曾闯入韦伯庄园实施抢劫。第 4 层因果：劫匪打开了一个古老金属匣。第 5 层怪物：金属匣中封印着死光。第 6 层弱点：雷电会让死光退缩。第 7 层解决方案：稳定强电流可以放逐死光。第 8 层韦伯秘密：韦伯医生早就知道死光的存在与使用方法。第 9 层真正恐怖：韦伯家族并非单纯受害者，而是长期使用者。第 10 层终极选择：玩家可用电对抗、撑到黎明、逃跑，或通过仪式牺牲一人重新控制死光。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "running.world_rules",
+      "layer": "running", "section": "十、AIRPG 世界运行规则",
+      "keywords": ["运行规则", "NPC独立行动", "不得泄露"],
+      "text_key": "worldbook.running.world_rules",
+      "text": "超自然是真实存在的，但普通人不知道这一点。NPC 不会因为剧情需要自动相信超自然解释。死光不会持续无脑追逐同一目标，而会游荡、观察、捕食、离开并再次返回；它具有智慧，可以主动破坏玩家的逃生与防御方案。普通门窗、家具和墙壁不能长期阻挡死光。强烈而复杂的负面情绪会提高被注意的风险。玩家开局不知道死光弱点，必须通过观察、实验或调查发现；闪电令死光退缩是重要线索。玩家没有固定任务顺序，不强迫前往庄园、加油站或森林。NPC 根据自身性格和利益独立行动，而不是静止等待玩家触发。玛丽会隐藏自己的犯罪行为并寻找自保方法；艾米利亚不知道祖父真正的秘密；比利知道抢劫和死光出现的真相但精神已经崩溃；萨姆不知道超自然真相却知道大量本地人物关系。黎明到来以前，威胁与行动压力应逐渐增加。玩家可以创造原模组没有写出的方案，只要符合既定世界规律。AI 不得为了推进剧情直接泄露隐藏真相。重要信息优先通过环境、对话、物品、尸体、日记和 NPC 行为逐步呈现。核心体验是调查、生存、选择与承担后果，而不是“打怪升级”。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "running.host_model",
+      "layer": "running", "section": "十一、AI主持与动态剧情原则",
+      "keywords": ["世界状态", "NPC状态", "线索状态", "死光状态"],
+      "text_key": "worldbook.running.host_model",
+      "text": "《死光》最适合 AIRPG 的地方在于它天然不是严格线性的任务链：遭遇艾米利亚之后，玩家可以自由决定去哪里、相信谁、是否救人、是否调查庄园、是否留在咖啡馆、是否进入树林或直接逃离。AI 的职责不是把玩家拖回“主线”，而是根据世界状态做出反应。推荐运行模型同时维护：世界状态（天气、道路、供电、电话、车辆、黎明倒计时）、NPC 状态（位置、情绪、信任、伤势、已知信息、当前目标）、线索状态（未发现／已观察／已确认／已理解）、死光状态（位置、饥饿程度、是否刚进食、当前目标、对电与雷暴的反应）、玩家状态（位置、伤势、情绪、装备、已掌握知识）以及事件推进：每次玩家行动后同时更新 NPC 与死光，而不是只推进玩家面前的“任务”。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "ending.paths",
+      "layer": "hidden", "section": "十二、结局与可行路线",
+      "keywords": ["结局", "放逐", "黎明", "逃离", "仪式"],
+      "text_key": "worldbook.ending.paths",
+      "text": "主动放逐：利用地窖发电机或其他稳定强电源设置陷阱，将死光送回原本维度。坚持到黎明：如果无法形成主动方案，活到太阳升起仍可能获得生存机会。逃离：理论上可行，但风暴、道路与死光会让逃亡具有极高风险，而且并非所有 NPC 都能离开。仪式控制：利用韦伯日记的操控方法重新束缚死光，但必须主动牺牲一个活人。失败／灾难扩大：如果玩家只逃离而不处理死光，它可能继续在周边地区猎食，留下后续故事钩子。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "ending.core_principle",
+      "layer": "running", "section": "十三、适用于AIRPG的核心一句话",
+      "keywords": ["核心原则", "事件而非任务"],
+      "text_key": "worldbook.ending.core_principle",
+      "text": "“这是一个玩家误入其中的事件，而不是一个等待玩家触发的任务。”玩家可以偏离原模组路线，世界只需依据既定规则持续回应；只要因果成立，新的解决方案与新的失败方式都应该被允许。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "emilia.knows.attack",
+      "layer": "investigation", "section": "NPC 知识：艾米利亚",
+      "keywords": ["祖父", "闯入者", "面罩", "枪"],
+      "text_key": "worldbook.emilia.knows.attack",
+      "text": "两个戴麻布面罩的人闯进了祖父的房子，其中一个特别高，另一个拿枪。祖父被打伤。她逃出来的时候，爷爷还有呼吸——她不知道他后来怎么样了。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "emilia.knows.light",
+      "layer": "investigation", "section": "NPC 知识：艾米利亚",
+      "keywords": ["光", "树林", "不知本质"],
+      "text_key": "worldbook.emilia.knows.light",
+      "text": "她在树林里见过那个东西，但她只会叫它“光”。它不是灯，也不是闪电；她不知道它是什么、从哪来、怎么对付。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "emilia.knows.box",
+      "layer": "investigation", "section": "NPC 知识：艾米利亚",
+      "keywords": ["金属匣", "骨灰盒", "别碰"],
+      "text_key": "worldbook.emilia.knows.box",
+      "text": "那个金属匣子是爷爷的。他叫它“令人毛骨悚然的骨灰盒”，并且叫她永远不要碰它。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "emilia.knows.desk_key",
+      "layer": "investigation", "section": "NPC 知识：艾米利亚",
+      "keywords": ["书桌", "抽屉", "怀表", "钥匙"],
+      "text_key": "worldbook.emilia.knows.desk_key",
+      "text": "爷爷把重要的东西锁在书桌最下面那层抽屉里。钥匙在他怀表袋里，他从来不放在别处。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "emilia.knows.robbery_premise",
+      "layer": "investigation", "section": "NPC 知识：艾米利亚",
+      "keywords": ["有预谋", "知道钱在哪"],
+      "text_key": "worldbook.emilia.knows.robbery_premise",
+      "text": "那两个人不是来偷东西的——他们知道钱在哪儿。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": [{"flag": "emilia.robbery_premise", "equals": true}]
+    },
+    {
+      "entry_id": "emilia.knows.family_sin",
+      "layer": "investigation", "section": "NPC 知识：艾米利亚",
+      "keywords": ["他们家的罪", "家族秘密"],
+      "text_key": "worldbook.emilia.knows.family_sin",
+      "text": "爷爷说那个匣子里装着“他们家的罪”。她只知道这一句，说不出更多。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": [{"flag": "emilia.family_secret", "equals": true}]
+    },
+    {
+      "entry_id": "emilia.knows.locket",
+      "layer": "investigation", "section": "NPC 知识：艾米利亚",
+      "keywords": ["挂坠", "金币", "铭文", "信任"],
+      "text_key": "worldbook.emilia.knows.locket",
+      "text": "挂坠是爷爷送的：银链穿一枚古旧金币，上面有不认识的符号，爷爷也不认识，是他父亲给他的。她只在她信任对方时才拿出来看，并且会说“别告诉别人我拿出来过”。",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": [], "conditions": [{"flag": "emilia.trust_locket", "equals": true}]
+    },
+    {
+      "entry_id": "emilia.memory.study",
+      "layer": "investigation", "section": "NPC 记忆碎片",
+      "keywords": ["书房", "账房", "记忆"],
+      "text_key": "worldbook.emilia.memory.study",
+      "text": "站在书房里她想起：“爷爷在这个房间里写东西。他从来不让我进来。”“他说这里是‘账房’。”",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": ["manor.room.doctor_study"], "conditions": []
+    },
+    {
+      "entry_id": "emilia.memory.bedroom",
+      "layer": "investigation", "section": "NPC 记忆碎片",
+      "keywords": ["卧室", "玻璃碎", "下楼"],
+      "text_key": "worldbook.emilia.memory.bedroom",
+      "text": "回到自己的卧室她会想起：“那天晚上我听见楼下有玻璃碎的声音。”“爷爷叫我别下楼。他自己下去了。”",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": ["manor.room.emilia_bedroom"], "conditions": []
+    },
+    {
+      "entry_id": "emilia.memory.parlor",
+      "layer": "investigation", "section": "NPC 记忆碎片",
+      "keywords": ["面罩", "撬棍", "接待室", "记忆"],
+      "text_key": "worldbook.emilia.memory.parlor",
+      "text": "回到接待室她会想起：“他们戴着面罩。有一个特别高——他把撬棍扔在门口了。”",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": ["manor.room.reception"], "conditions": []
+    },
+    {
+      "entry_id": "emilia.memory.cellar",
+      "layer": "investigation", "section": "NPC 记忆碎片",
+      "keywords": ["地窖", "机器", "记忆"],
+      "text_key": "worldbook.emilia.memory.cellar",
+      "text": "下到地窖她会想起：“爷爷带我来过一次。他说这台机器很重要，比房子还重要。”“他说如果有一天它响了，就说明事情不好了。”",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": ["manor.room.cellar"], "conditions": []
+    },
+    {
+      "entry_id": "emilia.memory.backyard",
+      "layer": "investigation", "section": "NPC 记忆碎片",
+      "keywords": ["逃出", "栅栏", "划破", "记忆"],
+      "text_key": "worldbook.emilia.memory.backyard",
+      "text": "走到屋外她会想起：“那天晚上，我从这里跑出去的。”“我翻过栅栏。我的手被划破了。”",
+      "speakers": ["emilia"], "public_scene": [], "scenes": [], "topics": ["manor.room.outside"], "conditions": []
+    },
+    {
+      "entry_id": "mary.says.name",
+      "layer": "public", "section": "NPC 台词边界：玛丽",
+      "keywords": ["名字", "工作"],
+      "text_key": "worldbook.mary.says.name",
+      "text": "被问名字时她说“玛丽·雷克。我在这儿工作。”——这是技术为真的陈述。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "mary.says.emilia_by_car",
+      "layer": "public", "section": "NPC 台词边界：玛丽",
+      "keywords": ["艾米利亚", "加油", "记得车"],
+      "text_key": "worldbook.mary.says.emilia_by_car",
+      "text": "被问是否认识艾米利亚时她说“她每周来加油。我记得车，不记得人。”——这句话技术上为真，但她不只是记得车。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "mary.says.self_preservation",
+      "layer": "public", "section": "NPC 台词边界：玛丽",
+      "keywords": ["自保", "只想出去", "发抖"],
+      "text_key": "worldbook.mary.says.self_preservation",
+      "text": "被逼到墙角时她说“我不想杀任何人。我只想出去。”——她比谁都怕，也在发抖。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    },
+    {
+      "entry_id": "mary.confession",
+      "layer": "investigation", "section": "NPC 台词边界：玛丽",
+      "keywords": ["铁证", "比利指认", "是我找的人"],
+      "text_key": "worldbook.mary.confession",
+      "text": "只有在铁证（C4）当面出示且比利当众指认之后，她才会说“……是我找的人。”这是她唯一一次实质坦白。",
+      "speakers": ["mary"], "public_scene": [], "scenes": [], "topics": [], "conditions": [{"flag": "mary.exposed_by_evidence", "equals": true}]
+    },
+    {
+      "entry_id": "narrator.hidden_roster",
+      "layer": "hidden", "section": "AI/KP 专用",
+      "keywords": ["隐藏真相", "主谋", "噬罪者", "仪式"],
+      "text_key": "worldbook.narrator.hidden_roster",
+      "text": "以下真相只供未来 AI 主持人／守秘人使用，任何 NPC 都不得知道或说出：玛丽因嫉妒艾米利亚策划了抢劫并指使克莱姆与比利；金属匣封印着死光，死光以生命能量和意识残留为食；韦伯家族世代把死光当作秘密处置工具，族人称之为“噬罪者”；韦伯医生用血绘印记与球外语言咒文控制死光，代价是牺牲一个活人；电流与日光能瓦解死光与现实空间的联系，雷电会让它退缩。",
+      "speakers": [], "public_scene": [], "scenes": [], "topics": [], "conditions": []
+    }
+  ]
+}
