@@ -29,11 +29,12 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	_check(actor.configure(presence, roster[0]), "rigged actor accepts validated preview asset")
 	world.add_child(actor)
 	await _frames(4)
-	var skeleton := actor.get_node_or_null("NpcVisual/PreviewHumanoid/Skeleton3D") as Skeleton3D
-	var body := actor.get_node_or_null("NpcVisual/PreviewHumanoid/Skeleton3D/PreviewBody") as MeshInstance3D
-	_check(actor.visual_ready() and skeleton != null and skeleton.get_bone_count() == 17, "skinned humanoid has 17 bones")
+	var skeleton := actor.get_node_or_null("NpcVisual/NPC_Rig/Skeleton3D") as Skeleton3D
+	var body := actor.get_node_or_null("NpcVisual/NPC_Rig/Skeleton3D/NPC_Body") as MeshInstance3D
+	_check(actor.visual_ready() and skeleton != null and skeleton.get_bone_count() == 23, "skinned humanoid has 23 bones")
 	_check(body != null and body.skin != null, "visible mesh is bound to skeleton")
 	_check(actor.current_clip() == "idle", "stationary actor breathes in idle")
+	var upper_arm: int = skeleton.find_bone("UpperArm.L")
 	var start: Vector3 = actor.position
 	actor._target = start + Vector3(0.7, 0, 0)
 	actor._wait = 0
@@ -45,17 +46,30 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	actor.set_greeting_target(actor.global_position + Vector3(0, 0, 2))
 	var paused: Vector3 = actor.position
 	await _frames(20)
-	_check(actor.current_clip() == "talk" and actor._animation.current_animation == "talk", "greeting drives talk clip")
+	_check(actor.current_clip() == "talk" and actor._animation.current_animation == "idle",
+		"greeting holds the talk state on the rig's standing clip")
+	_check(upper_arm >= 0 and skeleton.get_bone_pose_rotation(upper_arm).get_angle() > 0.3,
+		"the standing clip drives the skeleton away from its modeled A-pose rest")
 	_check(actor.position.distance_to(paused) < 0.03, "speaker does not slide during talk")
 	_check(absf(angle_difference(actor.rotation.y, 0)) < absf(angle_difference(heading, 0)), "speaker faces player")
 	var head_index: int = skeleton.find_bone("Head")
-	_check(head_index >= 0 and skeleton.get_bone_pose_rotation(head_index).get_angle() > 0.01, "talk animation drives head bone")
+	_check(head_index >= 0, "rig exposes a head bone for later facial work")
+	var foot_index: int = skeleton.find_bone("Foot.L")
+	var toes_index: int = skeleton.find_bone("Toes.L")
+	var toe_direction := Vector3.ZERO
+	if foot_index >= 0 and toes_index >= 0:
+		toe_direction = (skeleton.get_bone_global_rest(toes_index).origin \
+			- skeleton.get_bone_global_rest(foot_index).origin).normalized()
+	_check(toe_direction.z > 0.5, "rig faces its local +Z, the axis the turning math assumes")
+	var standing_position: float = actor._animation.current_animation_position
 	presence.end_greeting()
 	actor.clear_greeting_target()
 	actor._target = actor.position
 	actor._wait = 1.0
 	await _frames(3)
 	_check(actor.current_clip() == "idle", "closing greeting returns to idle")
+	_check(actor._animation.current_animation_position > standing_position,
+		"states sharing a clip keep the running loop instead of replaying it")
 	world.queue_free()
 	await _tree.process_frame
 	print("AIRPG_NPC_RIG_SUITE: %d checks, %d failures" % [checks, failures])

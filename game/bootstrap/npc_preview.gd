@@ -6,11 +6,9 @@ const RandomSource = preload("res://infrastructure/random/godot_random_source.gd
 static func build() -> Presence:
 	var roster: Array[Dictionary] = [
 		{"id": "preview_reception", "name_key": "npc.preview_reception", "greeting_key": "npc.greeting",
-			"spawn": Vector3(-4.6, 0.08, 2.0), "area": Rect2(-5.4, 0.8, 2.0, 3.3),
-			"color": Color(0.21, 0.30, 0.27)},
+			"spawn": Vector3(-4.6, 0.08, 2.0), "area": Rect2(-5.4, 0.8, 2.0, 3.3)},
 		{"id": "preview_study", "name_key": "npc.preview_study", "greeting_key": "npc.greeting",
-			"spawn": Vector3(3.5, 0.08, -3.1), "area": Rect2(2.4, -4.5, 2.5, 3.1),
-			"color": Color(0.29, 0.23, 0.20)},
+			"spawn": Vector3(3.5, 0.08, -3.1), "area": Rect2(2.4, -4.5, 2.5, 3.1)},
 	]
 	return Presence.new(RandomSource.new(), roster)
 

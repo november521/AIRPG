@@ -1,7 +1,14 @@
 extends CharacterBody3D
 ## Session-scoped NPC body and presentation. Story knowledge stays in the application service.
 const Presence = preload("res://application/exploration/npc_presence.gd")
-const VISUAL = preload("res://presentation/manor/npc_preview_public.glb")
+## Basic game rig from output/npc_basic_rig: one textured skinned body, 23 bones.
+const VISUAL = preload("res://presentation/manor/npc_preview_basic_rig.glb")
+const SKELETON_PATH: String = "NPC_Rig/Skeleton3D"
+const BODY_PATH: String = "NPC_Rig/Skeleton3D/NPC_Body"
+const BONE_COUNT: int = 23
+## Actor states are stable; clips are whatever the imported rig provides. The basic rig has no
+## talk clip, so a speaking actor keeps the standing loop and only turns toward the player.
+const CLIP_BY_STATE: Dictionary = {"idle": "idle", "walk": "walk", "talk": "idle"}
 const WALK_SPEED: float = 0.65
 const TURN_SPEED: float = 5.0
 var _presence: Presence
@@ -44,15 +51,16 @@ func configure(presence: Presence, entry: Dictionary) -> bool:
 	_visual.name = "NpcVisual"
 	add_child(_visual)
 	_animation = _visual.get_node_or_null("AnimationPlayer") as AnimationPlayer
-	var skeleton := _visual.get_node_or_null("PreviewHumanoid/Skeleton3D") as Skeleton3D
-	var body := _visual.get_node_or_null("PreviewHumanoid/Skeleton3D/PreviewBody") as MeshInstance3D
-	if _animation == null or skeleton == null or skeleton.get_bone_count() != 17 or body == null or body.skin == null:
+	var skeleton := _visual.get_node_or_null(SKELETON_PATH) as Skeleton3D
+	var body := _visual.get_node_or_null(BODY_PATH) as MeshInstance3D
+	if _animation == null or skeleton == null or skeleton.get_bone_count() != BONE_COUNT \
+			or body == null or body.skin == null:
 		return false
-	for clip: String in ["idle", "walk", "talk"]:
+	for state: String in CLIP_BY_STATE:
+		var clip: String = CLIP_BY_STATE[state]
 		if not _animation.has_animation(clip):
 			return false
 		_animation.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
-	_tint_coat(body, entry.color)
 	_play_clip("idle")
 	var label := Label3D.new()
 	label.text = tr(name_key)
@@ -62,14 +70,6 @@ func configure(presence: Presence, entry: Dictionary) -> bool:
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	add_child(label)
 	return true
-
-func _tint_coat(body: MeshInstance3D, color: Color) -> void:
-	for index: int in body.mesh.get_surface_count():
-		var source := body.mesh.surface_get_material(index) as StandardMaterial3D
-		if source != null and source.resource_name == "PreviewCoat":
-			var material := source.duplicate() as StandardMaterial3D
-			material.albedo_color = color
-			body.set_surface_override_material(index, material)
 
 func set_greeting_target(point: Vector3) -> void:
 	_greeting_target = point
@@ -102,16 +102,27 @@ func apply_directed_destination(point: Vector3) -> bool:
 	return true
 
 func visual_ready() -> bool:
-	return _animation != null and _animation.has_animation("idle") and _animation.has_animation("walk") and _animation.has_animation("talk")
+	if _animation == null:
+		return false
+	for state: String in CLIP_BY_STATE:
+		if not _animation.has_animation(CLIP_BY_STATE[state]):
+			return false
+	return true
 
 func current_clip() -> String:
 	return _clip
 
-func _play_clip(name: String) -> void:
-	if name == _clip:
+func _play_clip(state: String) -> void:
+	if state == _clip:
 		return
-	_clip = name
-	_animation.play(name, 0.18)
+	_clip = state
+	var clip: String = CLIP_BY_STATE[state]
+	# Two states can share one clip (talk uses the standing loop), so never re-issue play() for
+	# the clip that is already running: it would restart the loop mid-breath, and in Godot 4.7.2
+	# an AnimationPlayer left holding a replayed active clip segfaults when its scene is freed.
+	if _animation.current_animation == clip:
+		return
+	_animation.play(clip, 0.18)
 
 func _physics_process(delta: float) -> void:
 	if _presence == null or not visual_ready():

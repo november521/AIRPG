@@ -1,5 +1,47 @@
 # 接续记录
 
+## 预览 NPC 换成基础绑定模型（2026-10-03）
+
+用户给出 `output/npc_basic_rig/mujer_sexy_rigged.glb`，要求用它替换游戏书房 NPC 建模；在被明确告知
+`docs/npc-rig-preview.md` 记录的许可见解（该资产标 Sketchfab Standard，原先只留在本机、不进公开仓库）后，
+用户选择「直接提交进仓库」并把范围扩到两个预览 NPC。工作包：庄园 NPC 视觉替换 / 负责人本任务 /
+独立对抗复核待分配；分支仍为主工作区当前的 `feature/held-inventory-item`，未推送。
+
+资产：`game/presentation/manor/npc_preview_basic_rig.glb`，与交付文件逐字节一致（SHA-256
+`905fb38d…08e3`，2 478 900 字节，23 骨、六段动作），Godot 抽取出的贴图 `npc_preview_basic_rig_Image_0.jpg`
+（500 448 字节，SHA-256 `65cb23dc…f479`）与两个 `.import` 一并入库。上游网格/贴图来自
+`mujer_sexy.glb`（SHA-256 `78ae294f…4ad2`）。
+
+实现：`NpcActor` 的视觉、骨架路径、骨数与「状态→动作」映射集中为常量；`talk` 映射到 `idle`，因为绑定包
+没有交谈动作，交谈时保持站姿循环并转向玩家（不假装有交谈演出）。`_play_clip` 不再对已经在播的同一个
+动作重新调用 `play()`。移除了按装配数据给外套上色的代码与名单里的 `color` 字段：新模型只有一张带贴图的
+整体材质，改色会连皮肤和头发一起染色，身份区分继续由悬浮名牌承担。原来的程序几何占位模型
+`npc_preview_public.glb` 与生成脚本保留在仓库但不被引用，可作回退视觉。
+
+本轮发现并规避的引擎问题：真实图形窗口下按 F 触发问候后，若该演员刚刚「重复播放了当前正在播的动作」
+再释放场景，Godot 4.7.2 会 `CrashHandlerException: signal 11` 退出（退出码 -1073740771）。排除过程：
+同一条截图命令换成旧的 17 骨占位模型不崩；`talk` 临时映射到另一个动作不崩；保留映射但跳过「重播已在
+播的动作」不崩；不释放场景只 `quit()` 也不崩。无头测试套件未复现该崩溃，因此守卫落在行为断言上
+（「共用动作的状态不重播该循环」），复现命令保留在 `docs/npc-rig-preview.md`。崩溃发生在截图落盘之后，
+不影响产物，但属于同一场景释放路径，故按真实缺陷处理。
+
+验证：`scripts/verify.ps1` 在本机仍被既有环境问题挡在导入步骤（Godot 读不到 Windows 根证书库；
+沙箱下无法写 `%APPDATA%\Godot` 的编辑器设置）。按本文件既有做法改用逻辑等价驱动
+`artifacts/verify_equivalent.ps1`（同参数、同错误正则、同完成标记与套件标记，只登记这两行环境噪声，
+`APPDATA` 指向 `artifacts/godot-appdata`）：架构检查 197 个源/场景文件、3 项负向用例、资源导入、
+启动标记通过；`AIRPG_TESTS: 990 checks, 0 failures`（BASE 95 / G1 138 / F1 174 / NPC_AI 35 / I1 246 /
+ARCHIVE 62 / MANOR 118 / NPC_RIG 15 / CHARACTER 38 / INTERACTION 69）。改动前基线为 987 项零失败，
+NPC_RIG 由 12 升到 15。真实图形窗口 RTX 4060 截图 `artifacts/npc_study.png`、
+`artifacts/npc_study_greeting.png` 已核对：书房 NPC 站位、身高 1.75 米、贴图、名牌、按 F 后的固定问候
+与面对玩家朝向均正常；`capture_main.gd` 新增 `study` / `study_talk` 两个模式用于复查。
+
+未实现/待复核：绑定包的 `run`、`sit_down`、`sit_idle`、`stand_up` 四段动作未使用，坐姿需要椅面锚点与
+就座行为；没有交谈动作、面部、手指或 IK；50k 三角面加入后的绘制开销、多 NPC 同屏、导出包内的蒙皮与
+贴图、以及许可取舍在上架前是否必须换回经批准的角色美术均未验收；独立对抗复核待分配。工作区里另有
+其他任务留下的未跟踪草稿 `game/presentation/manor/mujer_sexy.glb`、`npc_preview_rigged.glb`（17 骨旧
+绑定尝试）与 `scripts/assets/build_npc_preview.py`，本轮未改动、未提交，已由本资产取代，可由其负责人
+清理。本轮未推送、未发布、未变更 PRD。
+
 ## NPC AI 输入 API 合入桌面主工程（2026-10-03）
 
 用户要求把 `codex/npc-ai-input-api` 合入 `C:/Users/31286/Desktop/AIRPG/game` 并一同推送。
