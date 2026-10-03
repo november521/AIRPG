@@ -538,7 +538,7 @@ func _manor(check: Callable, tree: SceneTree) -> void:
 	check.call(recorder.count_sounds(Port.DOOR_CLOSE) == 1, "AUDIO: closing it is heard closing once")
 	# Dropping is the one notebook command whose sound happens in the world.
 	recorder.clear()
-	play._drop_item_in_world("demo_bandage")
+	play._held_item.drop("demo_bandage")
 	check.call(recorder.count_sounds(Port.PUT) == 1 and recorder.spatial_for(Port.PUT),
 		"AUDIO: a dropped item is heard landing in the world")
 	# A floor pickup: the second command is the one that takes it, and the one that sounds.
