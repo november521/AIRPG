@@ -5,6 +5,10 @@ const Main = preload("res://bootstrap/manor_play.tscn")
 const WalkSession = preload("res://application/exploration/walk_session.gd")
 const Player = preload("res://presentation/exploration/player.gd")
 const RoomMap = preload("res://presentation/shell/manor_room_map.gd")
+const DOOR_IDS: Array[String] = ["manor.door.side", "manor.door.main", "manor.door.bathroom",
+	"manor.door.doctor_bedroom", "manor.door.doctor_study", "manor.door.emilia_bedroom",
+	"manor.door.emilia_study", "manor.door.kitchen", "manor.door.reception",
+	"manor.door.reception_kitchen"]
 var checks: int = 0
 var failures: int = 0
 var _world: Node3D
@@ -154,6 +158,7 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	main._return_to_archive()
 	_check(returned == ["story_archive"], "return goes to archive")
 	await _check_npcs(main)
+	await _check_flush_doors(main)
 	main.queue_free()
 	await _tree.process_frame
 	print("AIRPG_STRUCTURE_WALK_TESTS: %d checks, %d failures" % [checks, failures])
@@ -192,4 +197,79 @@ func _check_npcs(main: Node3D) -> void:
 	main.npc_actors[0].position = Vector3(-5.0, 0, 0.5)
 	await _frames(2)
 	_check(not main._can_see(main.npc_actors[0]), "actual reception partition blocks greeting")
+
+## Regression for the door-clearance rule. A player resting against a closed door sits 2 mm from
+## the leaf, inside the sweep margin, so leaning on a door must not veto opening it. A body actually
+## standing in the arc the leaf swings through must still stop the opening.
+func _check_flush_doors(main: Node3D) -> void:
+	main.set_physics_process(false)
+	var service = main.interaction_service
+	var physical: CapsuleShape3D = (main.player.get_node("Collision") as CollisionShape3D).shape
+	var occupied: AnimatableBody3D = main.find_child("manor_door_bathroom", true, false)
+	var geometry: Dictionary = _door_geometry(occupied)
+	var leaf: Vector3 = geometry.leaf
+	var normal: Vector3 = geometry.normal
+	var floor_y: float = _floor_below(leaf)
+	var arc: Vector3 = leaf - normal * 0.6
+	main.player.place_at(_stand_at(leaf, normal, physical.radius, geometry.box[geometry.thin], floor_y),
+		atan2(-normal.x, -normal.z))
+	main.npc_actors[0].position = Vector3(arc.x, floor_y + 0.02, arc.z)
+	main.camera.look_at(leaf, Vector3.UP)
+	await _frames(6)
+	main.camera.look_at(leaf, Vector3.UP)
+	service.set_enabled(true)
+	service.refresh_focus()
+	var arc_focus: Dictionary = service.read_focus()
+	var arc_result: RefCounted = service.interact("manor.door.bathroom", int(arc_focus.get("revision", 0)))
+	_check(arc_focus.get("target_id") == "manor.door.bathroom" and arc_result.code == "DOOR_BLOCKED",
+		"body in the opening arc still blocks the sweep (" + arc_result.code + ")")
+	for actor: Node3D in main.npc_actors:
+		actor.position = Vector3(60.0, 0.0, 60.0)
+	for id: String in DOOR_IDS:
+		var body: AnimatableBody3D = main.find_child(id.replace(".", "_"), true, false)
+		geometry = _door_geometry(body)
+		leaf = geometry.leaf
+		normal = geometry.normal
+		floor_y = _floor_below(leaf)
+		main.player.place_at(_stand_at(leaf, normal, physical.radius, geometry.box[geometry.thin], floor_y),
+			atan2(-normal.x, -normal.z))
+		main.camera.look_at(leaf, Vector3.UP)
+		await _frames(6)
+		main.camera.look_at(leaf, Vector3.UP)
+		service.set_enabled(true)
+		service.refresh_focus()
+		var focus: Dictionary = service.read_focus()
+		var aimed: bool = focus.get("target_id") == id
+		_check(aimed, "flush aim reaches " + id)
+		var result: RefCounted = service.interact(id, int(focus.get("revision", -1)))
+		_check(aimed and result.ok, "flush press opens " + id + " rather than " + result.code)
+
+## Places the capsule tangent to the leaf face on the approach side, feet on the local floor.
+func _stand_at(leaf: Vector3, normal: Vector3, radius: float, thickness: float, floor_y: float) -> Vector3:
+	var spot: Vector3 = leaf + normal * (radius + thickness * 0.5 + 0.002)
+	return Vector3(spot.x, floor_y + 0.05, spot.z)
+
+func _door_geometry(body: AnimatableBody3D) -> Dictionary:
+	var shape: CollisionShape3D = _box_shape(body)
+	var box: Vector3 = (shape.shape as BoxShape3D).size
+	var thin: int = 0
+	if box.y < box[thin]:
+		thin = 1
+	if box.z < box[thin]:
+		thin = 2
+	var axis := Vector3.ZERO
+	axis[thin] = 1.0
+	return {"box": box, "thin": thin, "normal": (body.global_transform.basis * axis).normalized(),
+		"leaf": body.global_transform * shape.position}
+
+func _box_shape(node: Node) -> CollisionShape3D:
+	for child: Node in node.get_children():
+		if child is CollisionShape3D:
+			return child
+	return null
+
+func _floor_below(point: Vector3) -> float:
+	var query := PhysicsRayQueryParameters3D.create(point + Vector3.UP * 0.5, point + Vector3.DOWN * 4.0, 1)
+	var hit: Dictionary = _tree.root.world_3d.direct_space_state.intersect_ray(query)
+	return hit.position.y if not hit.is_empty() else point.y - 1.0
 	

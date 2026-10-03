@@ -1,5 +1,37 @@
 # 接续记录
 
+## 紧贴门开不了门：门净空只挡新增接触（2026-10-03）
+
+用户试玩反馈「紧贴门开不了门」。工作包 C-MI2 / 负责人本任务 / 独立对抗复核待分配，
+仍在 `feature/manor-v3-scene` 分支与同一 worktree 上实施，主工作区未动。
+
+复现与定位（无界面物理诊断，逐门双面）：站在门叶前 0.259–0.260 米（胶囊半径 0.23 + 门叶半厚
+0.0275 + `safe_margin`）时，准星能命中门体并显示提示，但按 F 全部返回 `DOOR_BLOCKED`：
+十扇门、两个方向 20 个用例无一例外。根因在 `infrastructure/exploration/physics_door_clearance.gd`：
+扫掠在 17 个角度上采样门叶，**包含起始（关闭）姿态**，而查询带 `margin = 0.045`；
+角色靠住门叶后间隙只有约 0.002 米，于是「本来已经贴在门上的人」被判成阻挡。
+这是净空规则的问题，不是射线、遮挡或模型问题（射线同时命中的门体会被绑定，聚焦正常）。
+
+改动只落在净空适配器与测试，未改契约：`is_clear` / `is_clear_pose` 签名不变。
+新规则：开启方向先记录起始姿态的接触体，扫掠中只把「新增接触」算作阻挡；若门叶停下时
+仍压在这些接触体上，或该姿态出现任何接触，仍然 `DOOR_BLOCKED`。关闭方向不启用容忍，
+与改动前逐字一致，因此「站在门扇将要经过的位置不能关闭」的既有行为与用例不受影响。
+
+回归：`tests/manor/test_manor.gd` 新增 21 项检查——十扇门紧贴开门（瞄准 + 实际按 F 均须成功）
+以及「有人站在开启弧内仍然阻挡」。全量 `res://tests/run_tests.gd` 为
+`AIRPG_TESTS: 375 checks, 0 failures`（MANOR 93 → 114，INTERACTION 54 保持不变，
+其中「actor in swept volume blocks closing」继续通过）。文档 `docs/interactions.md`
+已补该规则与限制。
+
+未做：只验证了玩家与合成 NPC 两类 actor；未做连续扫掠、门叶推开角色、多人重叠、
+低帧率下的重复触发验收；独立对抗复核待分配。复核重点：靠门连按 F 的开合抖动、
+门叶停下压人时必须仍然报阻挡、以及贴门时反向开门的观感。
+
+顺带发现（本轮未修，属 presentation/character 工作包）：不经启动层、直接实例化
+`manor_play.tscn` 时，`presentation/character/character_hud.gd:138` 会用没有占位符的
+`tr("ui.item_count")` 做 `%` 格式化，报 `not all arguments converted during string formatting`。
+正式启动路径先加载本地化，因此不触发；但裸场景测试会往日志里写 SCRIPT ERROR。
+
 ## 庄园 V3 模型替换主场景（2026-10-03）
 
 用户交付《死光庄园_完整建模包_V3_20261003》的 `manor_furnished_v3.blend`，要求把该模型导入
