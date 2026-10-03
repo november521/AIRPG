@@ -109,6 +109,10 @@ func _settings_panel(check: Callable) -> void:
 	var panel: PanelContainer = ConnectionPanel.new()
 	panel._ready()
 	check.call(panel.configure(service), "NPC-AI: settings view accepts application facade")
+	var scroll: ScrollContainer = panel.get_node_or_null("SettingsScroll")
+	check.call(scroll != null and scroll.follow_focus \
+		and scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED,
+		"NPC-AI: settings fields stay reachable through a focus-following vertical scroll")
 	var endpoint: LineEdit = panel.get("_endpoint")
 	var model: LineEdit = panel.get("_model")
 	var key: LineEdit = panel.get("_key")

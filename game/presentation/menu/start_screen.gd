@@ -89,6 +89,11 @@ func _open_settings() -> void:
 	_settings_overlay.add_child(shade)
 	var panel := AiConnectionPanel.new()
 	_settings_overlay.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.offset_left = 180.0
+	panel.offset_top = 64.0
+	panel.offset_right = -180.0
+	panel.offset_bottom = -64.0
 	panel.configure(_ai_connection)
 	panel.closed.connect(_close_settings)
 
