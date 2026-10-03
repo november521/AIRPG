@@ -53,7 +53,7 @@ func run(check: Callable, tree: SceneTree) -> void:
 	var page: Control = VIEW.instantiate()
 	tree.root.add_child(page)
 	page.configure(reset_service)
-	_verify(page._budget.text == page.tr("creation.budget") % [60, 6], "creation page reflects service budget")
+	_verify(page._budget_attributes.text == "60" and page._budget_skills.text == "6", "creation page reflects service budget")
 	page._rows.strength.requested.emit("strength", 80)
 	_verify(reset_service.read_creation().attributes.strength == 80, "creation control edits through service")
 	page._rows.strength.requested.emit("strength", 81)

@@ -1,5 +1,17 @@
 extends HBoxContainer
+## One stepper row of the investigator creation page: name, −/value/+ group and
+## the allowed range. Geometry mirrors the approved reference layout.
 signal requested(field_id: String, value: int)
+
+const Style = preload("res://presentation/character/creation_style.gd")
+
+## Fixed columns, in design pixels at 1920x1080: the name column and the
+## trailing inset pin the stepper group and the range hint to the same x on
+## every row of both cards.
+const NAME_COLUMN := 212
+const RANGE_WIDTH := 62
+const TRAILING_GAP := 34
+
 var field_id: String
 var _value: int
 var _minimum: int
@@ -12,29 +24,30 @@ func configure(id: String, title: String, minimum: int, maximum: int) -> void:
 	field_id = id
 	_minimum = minimum
 	_maximum = maximum
-	custom_minimum_size.y = 54
-	add_theme_constant_override("separation", 10)
-	var name := Label.new()
-	add_child(name)
-	name.text = title
-	name.custom_minimum_size.x = 130
-	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name.add_theme_font_size_override("font_size", 20)
-	_minus = _button("−")
-	_entry = LineEdit.new()
-	add_child(_entry)
-	_entry.custom_minimum_size = Vector2(72, 44)
-	_entry.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_entry.max_length = 3
-	_entry.add_theme_font_size_override("font_size", 20)
+	custom_minimum_size.y = 52
+	add_theme_constant_override("separation", 18)
+	var caption := Style.label(self, title, 27, Style.PAPER)
+	# The name column and the trailing gap are what pin the stepper group and
+	# the range hint to the same x on every row of both cards.
+	caption.custom_minimum_size.x = NAME_COLUMN
+	caption.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_minus = Style.step_button(self, "−")
+	_entry = Style.value_field(self)
+	_plus = Style.step_button(self, "+")
+	var flex := Control.new()
+	add_child(flex)
+	flex.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var range_text := Style.label(self, "%d–%d" % [minimum, maximum], 20, Style.DIM)
+	range_text.custom_minimum_size.x = RANGE_WIDTH
+	range_text.size_flags_horizontal = Control.SIZE_SHRINK_END
+	range_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var tail := Control.new()
+	add_child(tail)
+	tail.custom_minimum_size.x = TRAILING_GAP
+	tail.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_entry.text_submitted.connect(func(_text: String) -> void: _submit())
 	_entry.focus_exited.connect(_submit)
-	_plus = _button("+")
-	var range_text := Label.new()
-	add_child(range_text)
-	range_text.text = "%d–%d" % [minimum, maximum]
-	range_text.custom_minimum_size.x = 64
-	range_text.add_theme_color_override("font_color", Color(0.65, 0.59, 0.49))
 	_minus.pressed.connect(func() -> void: requested.emit(field_id, _value - 1))
 	_plus.pressed.connect(func() -> void: requested.emit(field_id, _value + 1))
 
@@ -57,11 +70,3 @@ func _submit() -> void:
 		_entry.text = str(_value)
 		return
 	requested.emit(field_id, parsed)
-
-func _button(title: String) -> Button:
-	var button := Button.new()
-	add_child(button)
-	button.text = title
-	button.custom_minimum_size = Vector2(44, 44)
-	button.add_theme_font_size_override("font_size", 23)
-	return button
