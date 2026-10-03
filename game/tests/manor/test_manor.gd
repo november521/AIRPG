@@ -4,6 +4,7 @@ const World = preload("res://presentation/manor/world.tscn")
 const Main = preload("res://bootstrap/manor_play.tscn")
 const WalkSession = preload("res://application/exploration/walk_session.gd")
 const Player = preload("res://presentation/exploration/player.gd")
+const RoomMap = preload("res://presentation/shell/manor_room_map.gd")
 var checks: int = 0
 var failures: int = 0
 var _world: Node3D
@@ -36,6 +37,24 @@ func _walk(start: Vector3, yaw: float, frames: int, axis: Vector2 = Vector2.UP) 
 func run(verify: Callable, tree: SceneTree) -> void:
 	_tree = tree
 	_verify = verify
+	var rooms: Array[Dictionary] = [
+		{"id": "outside", "point": Vector3(-8.05, -.39, -1.64)},
+		{"id": "porch", "point": Vector3(5.4, .1, 3.9)},
+		{"id": "reception", "point": Vector3(-4.4, .1, 3.9)},
+		{"id": "kitchen", "point": Vector3(.6, .1, 3.9)},
+		{"id": "hall", "point": Vector3(-.7, .1, -2.0)},
+		{"id": "emilia_bedroom", "point": Vector3(-5.2, .1, -5.7)},
+		{"id": "emilia_study", "point": Vector3(-4.0, .1, -10.8)},
+		{"id": "doctor_bedroom", "point": Vector3(3.0, .1, -9.3)},
+		{"id": "doctor_study", "point": Vector3(4.5, .1, -2.9)},
+		{"id": "bathroom", "point": Vector3(-.7, .1, -11.0)},
+		{"id": "cellar_stairs", "point": Vector3(-5.2, -.7, -10.7)},
+		{"id": "cellar", "point": Vector3(-4.4, -2.7, -10.7)},
+	]
+	for room: Dictionary in rooms:
+		_check(RoomMap.room_id(room.point) == room.id, "room mapping: " + room.id)
+		_check(tr("ui.room." + room.id) != "ui.room." + room.id, "room name localized: " + room.id)
+		_check(tr("ui.room_note." + room.id) != "ui.room_note." + room.id, "room note localized: " + room.id)
 	_world = World.instantiate()
 	_tree.root.add_child(_world)
 	_player = _world.get_node("Player")
@@ -92,6 +111,9 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	_check(main.player.position.is_equal_approx(Vector3(-8.05, -.39, -1.64)), "reset goes to side entry")
 	main.visit_cellar()
 	_check(main.player.position.y < -2.6 and main.session.movement() == Vector2.ZERO, "cellar shortcut stops movement")
+	main._hud.show_location(Vector3(4.5, .1, -2.9), true)
+	_check(main._hud.get_node("Layout/Location").text == tr("ui.room.doctor_study"), "entered room name shown")
+	_check(main._hud.get_node("Layout/Note").text == tr("ui.room_note.doctor_study"), "entered room mystery note shown")
 	_check(tr("walk.help") != "walk.help", "help is localized")
 	var view: Dictionary = main.character_service.read_character()
 	var key := InputEventKey.new()
@@ -100,16 +122,19 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	key.pressed = true
 	main._input(key)
 	_check(main.character_hud.is_open(), "E opens dossier")
-	_check(main.character_hud._tabs.get_tab_count() == 4, "all dossier tabs integrated")
+	_check(main.character_hud._tabs.size() == 3, "notebook categories visible")
+	_check(main.character_hud._meter.visible == false and main.character_hud._dimmer.visible, "notebook replaces exploration HUD")
 	_check(main.session.movement() == Vector2.ZERO and main._controls.movement() == Vector2.ZERO, "dossier stops walk session")
 	key.echo = true
 	main._input(key)
 	_check(main.character_hud.is_open(), "E repeat ignored")
-	main.character_hud._tabs.current_tab = 2
+	main.character_hud._tabs[1].pressed.emit()
+	_check(main.character_hud._other_pages[0].visible and not main.character_hud._item_page.visible, "clues tab shows honest empty state")
+	main.character_hud._tabs[0].pressed.emit()
 	main.character_hud._use.pressed.emit()
 	view = main.character_service.read_character()
 	_check(view.hp == 85 and view.inventory.demo_bandage == 2, "integrated item use atomic")
-	_check(main.character_hud._overview._hp.value == 85 and main.character_hud._tabs.current_tab == 2, "overview refresh retains tab")
+	_check(main.character_hud._hp.value == 85 and main.character_hud._hp_number.text == "85", "vital meter follows item use")
 	main.reset_at_side_entry()
 	_check(main.character_service.read_character() == view, "reset location keeps inventory")
 	main.visit_cellar()
@@ -117,6 +142,13 @@ func run(verify: Callable, tree: SceneTree) -> void:
 	key.echo = false
 	main._input(key)
 	_check(not main.character_hud.is_open(), "E closes dossier")
+	_check(main.character_hud._meter.visible and main.character_hud._bag.visible, "exploration HUD returns after closing")
+	main._input(key)
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	escape.pressed = true
+	main._input(escape)
+	_check(not main.character_hud.is_open(), "Esc closes notebook")
 	var returned: Array[String] = []
 	main.route_requested.connect(func(route: String) -> void: returned.append(route))
 	main._return_to_archive()
@@ -161,4 +193,3 @@ func _check_npcs(main: Node3D) -> void:
 	await _frames(2)
 	_check(not main._can_see(main.npc_actors[0]), "actual reception partition blocks greeting")
 	
-

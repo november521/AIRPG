@@ -9,7 +9,6 @@ signal quit_requested()
 
 @onready var _design: Control = %Design
 @onready var _art: Control = %Artwork
-@onready var _smoke: TextureRect = %Smoke
 @onready var _menu: VBoxContainer = %Menu
 @onready var _start: MenuEntry = %StartButton
 @onready var _settings: MenuEntry = %SettingsButton
@@ -26,13 +25,11 @@ func _ready() -> void:
 	# Settings intentionally has no pressed handler until its scope is defined.
 	_link_focus()
 	_art.modulate.a = 0.0
-	_smoke.modulate.a = 0.0
 	_menu.modulate.a = 0.0
 	_start.grab_focus()
 	_reveal = create_tween().set_parallel(true)
 	_reveal.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	_reveal.tween_property(_art, "modulate:a", 1.0, 2.4)
-	_reveal.tween_property(_smoke, "modulate:a", 1.0, 3.2)
 	_reveal.tween_property(_menu, "modulate:a", 1.0, 1.2).set_delay(0.5)
 
 func configure(_session: Session, _pack_id: String, _content_version: String,
@@ -65,7 +62,6 @@ func resume_from_archive() -> void:
 	if _reveal != null:
 		_reveal.kill()
 	_art.modulate.a = 1.0
-	_smoke.modulate.a = 1.0
 	_menu.modulate.a = 1.0
 	_design.modulate.a = 0.0
 	_reveal = create_tween()
