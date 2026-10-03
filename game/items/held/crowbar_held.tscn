@@ -1,14 +1,13 @@
 [gd_scene load_steps=3 format=3]
 
-[sub_resource type="StandardMaterial3D" id="Material"]
-albedo_color = Color(0.24, 0.78, 0.57, 1)
-metallic = 0.55
-roughness = 0.32
+[ext_resource type="Script" path="res://items/held/crowbar_held.gd" id="1_controller"]
+[ext_resource type="PackedScene" path="res://items/models/crowbar.glb" id="2_model"]
 
-[sub_resource type="BoxMesh" id="Mesh"]
-material = SubResource("Material")
-size = Vector3(0.3, 0.3, 0.3)
+[node name="CrowbarHeld" type="Node3D"]
+script = ExtResource("1_controller")
 
-[node name="CrowbarHeld" type="MeshInstance3D"]
-mesh = SubResource("Mesh")
-position = Vector3(0.22, -0.28, -0.48)
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="CrowbarModel" parent="Visual" instance=ExtResource("2_model")]
+rotation = Vector3(0, 0, -0.174533)
+scale = Vector3(0.16, 0.16, 0.16)

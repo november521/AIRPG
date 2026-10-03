@@ -216,11 +216,11 @@ func _drop_item_in_world(item_id: String) -> void:
 	var source_id: String = "manor.drop.%d" % _drop_serial
 	_drop_serial += 1
 	var handler := WorldItemInteraction.new(character_service, source_id, item_id, 1, definition.name_key)
-	dropped.name = source_id
+	dropped.name = source_id.replace(".", "_")
 	$World.add_child(dropped)
 	dropped.position = player.position - player.global_basis.z * 0.8
 	dropped.position.y = player.position.y + 0.24
-	dropped.configure(handler, definition.name_key, 1)
+	dropped.configure_runtime(item_id, handler, definition.name_key, 1)
 	interaction_service.register_runtime_target(source_id, handler, dropped.get_node("Target"))
 
 func _sync_held_visual() -> void:
