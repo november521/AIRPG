@@ -1,0 +1,36 @@
+{
+  "source": "C:\\Users\\31286\\Downloads\\死光庄园_完整建模包_V3_20261003\\manor_v3\\manor_furnished_v3.blend",
+  "source_sha256": "1026844475f00669d681444a2ab7009c21c2e5fe4913f8c159b2fa820962d821",
+  "target": "C:\\Users\\31286\\Desktop\\AIRPG\\.tools\\worktrees\\manor-v3\\artifacts\\manor_v3\\manor.glb",
+  "target_bytes": 86058980,
+  "blender": "5.2.2 LTS",
+  "scene": "Dead Light | Furnished Manor v3",
+  "visual_objects": 5329,
+  "meshes": 5096,
+  "modifiers_applied": true,
+  "collision_objects": 613,
+  "collision_triangles": 60756,
+  "walk_ramps": 3,
+  "door_hinges": [
+    "MS_SideEntry_Hinge",
+    "MS_MainEntry_Hinge",
+    "MS_Bathroom_Door_Hinge",
+    "MS_DoctorBedroom_Door_Hinge",
+    "MS_DoctorStudy_Door_Hinge",
+    "MS_EmiliaBedroom_Door_Hinge",
+    "MS_EmiliaStudy_Door_Hinge",
+    "MS_Kitchen_Door_Hinge",
+    "MS_Reception_Door_Hinge",
+    "MS_Reception_Kitchen_Door_Hinge"
+  ],
+  "excluded_collections": [
+    "MS_11_Lights_Cameras",
+    "MS_12_Plan_Labels",
+    "MS_13_Roof_Source",
+    "V3_Cameras",
+    "V3_Lighting",
+    "Collection"
+  ],
+  "coordinate_mapping": "Blender (x,y,z) -> Godot (x,z,-y)",
+  "source_saved": false
+}

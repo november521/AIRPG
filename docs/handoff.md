@@ -1,5 +1,46 @@
 # 接续记录
 
+## 庄园 V3 模型替换主场景（2026-10-03）
+
+用户交付《死光庄园_完整建模包_V3_20261003》的 `manor_furnished_v3.blend`，要求把该模型导入
+游戏、替换原有庄园建模场景，并明确先不影响主 game 工作区。工作包 A-MANOR-V3 / 负责人本任务 /
+独立对抗复核待分配；分支 `feature/manor-v3-scene`，独立 worktree `.tools/worktrees/manor-v3`，
+基线 `8b22604c`（与 main 相同）。主工作区本轮零写入，未推送。
+
+改动：新增 `scripts/assets/export_manor_v3.py`（读交付 .blend 导出游戏 GLB，只读源文件并校验
+sha256）；`game/presentation/manor/manor.glb` 由新导出替换（86 058 980 字节，5329 视觉对象、
+133 万三角面、77 材质、36 内嵌贴图、60 756 走行碰撞三角面）；Godot 按既有
+`embedded_image_handling=1` 抽取出 36 张 `manor_*_{basecolor,normal}.png` 并入库；删除旧 GLB
+抽取出的 11 张 `manor_Godot_MS_*.png` 及 `.import`（无场景引用）。新增
+`docs/manor-v3-import.md` 记录来源、导出取舍、契约与限制。`world.tscn`、走行、交互、
+`imported_door_collision`、房间识别、NPC、物品与本地化均未改动。
+
+契约保持：十个门铰链名、`ManorWalkCollision-colonly`、`-colonly` 走行网格与三条坡道、
+Blender `(x,y,z) -> Godot (x,z,-y)` 坐标映射、门把手不进视觉与走行网格（ADR 0008）。
+作者灯光、相机、平面标注、屋顶源集合未进入游戏 GLB。
+
+验证（固定引擎 4.7.2.stable.official.ed1daf0bf，均在 worktree 内）：架构检查 128 个源/场景
+文件通过、3 项负向用例通过；`--editor --import` 退出码 0（12.5 s，39.8 MiB
+`manor.glb-*.scn`）；`res://tests/run_tests.gd` 为 `AIRPG_TESTS: 354 checks, 0 failures`
+（BASE 95 / ARCHIVE 62 / MANOR 93 / NPC_RIG 12 / CHARACTER 38 / INTERACTION 54），
+MANOR 与 INTERACTION 套件实例化真实 `manor_play.tscn` 并打印 `AIRPG_STRUCTURE_WALK_READY`；
+`--quit-after 5` 出现 `AIRPG_BOOT_READY`。真实窗口（RTX 4060 / OpenGL 兼容）用
+`tests/manor/capture_main.gd` 截取走廊视图，模型、光照、HUD、房门与提示均正常；
+导出的 GLB 回导 Blender 渲染与交付包 `preview_overview.png` 外观一致。
+
+`./scripts/verify.ps1` 未原样跑通：import 步骤因本机既有的
+`ERROR: Failed to read the root certificate store.`（`os_windows.cpp:2582`）触发其错误输出
+判定而中止。该行与本仓库内容无关——只有 `project.godot` 的空工程跑同样的导入会复现同一行；
+本轮按既有做法用逻辑等价驱动执行三步（相同参数、错误正则与完成标记，仅登记该环境行），
+未放宽其他判定。另需记录一次事故：第一轮验证时 import 曾出现一个 Godot 进程卡死
+（单线程空转、日志被独占、15 分钟无写入）；会话中断未终止后台作业，残留进程被强制结束后
+删除 `game/.godot` 重新导入即恢复正常，可重复。重跑前请先确认无残留 Godot 进程。
+
+未实现/待复核：未做 LOD、合批、显存与帧率验收，5244 个网格实例的绘制调用是本轮导入的
+主要性能风险；家具、道具、墙面与庭院装饰无碰撞，室外新增石路不在走行网格内；未做导出包、
+低配机器与不同 DPI 验收；独立对抗复核待分配。复核重点：门净空与楼梯净空在新家具布局下是否
+仍然成立、侧门出生点到门廊的实际走行、以及 5000+ 节点场景的加载与帧率。
+
 ## 死光 UI 合并 PR：轻量 HUD + 调查员手记（2026-10-03）
 
 用户要求把本地已完成的《死光》UI 工作适配到最新主仓库，并提取一个合并 PR：一是 `D:\AIRPG\AIRPG` 中未提交的探索 HUD 与 E 键手记实现（基于 921556a），二是评审稿提交 `455fe93`（`docs/ui-design/`），三是同一目录随后完成的开始界面封面改版（见下一节记录；该节由封面工作本身撰写，其中的验证数字属于其自身基线）。工作包 U-DEADLIGHT-UI / 负责人本任务 / 独立对抗复核待分配；分支 `feature/deadlight-ui`，基线 `88c9ef0`。
