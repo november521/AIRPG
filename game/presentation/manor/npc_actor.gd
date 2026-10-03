@@ -16,6 +16,10 @@ var _animation: AnimationPlayer
 var _clip: String = ""
 var _greeting_target: Vector3 = Vector3.ZERO
 var _has_greeting_target: bool = false
+var _directive_active: bool = false
+var _directive_command: String = ""
+signal directive_completed(npc_id: String, command_id: String)
+signal directive_failed(npc_id: String, command_id: String)
 
 func configure(presence: Presence, entry: Dictionary) -> bool:
 	_presence = presence
@@ -74,6 +78,29 @@ func set_greeting_target(point: Vector3) -> void:
 func clear_greeting_target() -> void:
 	_has_greeting_target = false
 
+func apply_stay() -> bool:
+	_cancel_directive(false)
+	_target = position
+	return true
+
+func apply_face_target(point: Vector3) -> bool:
+	if not point.is_finite():
+		return false
+	_cancel_directive(false)
+	_target = position
+	set_greeting_target(point)
+	return true
+
+func apply_directed_destination(point: Vector3) -> bool:
+	if not point.is_finite():
+		return false
+	_target = point
+	_wait = 0.0
+	_stuck = 0.0
+	_directive_active = true
+	_directive_command = "npc.move_to_anchor"
+	return true
+
 func visual_ready() -> bool:
 	return _animation != null and _animation.has_animation("idle") and _animation.has_animation("walk") and _animation.has_animation("talk")
 
@@ -92,11 +119,21 @@ func _physics_process(delta: float) -> void:
 	var previous := position
 	var speaking: bool = _presence.paused(npc_id)
 	var direction := Vector3(_target.x - position.x, 0, _target.z - position.z)
-	if speaking:
+	if _directive_active and direction.length() < 0.18:
+		var completed_command := _directive_command
+		_cancel_directive(false)
 		direction = Vector3.ZERO
-	elif _wait > 0:
+		directive_completed.emit(npc_id, completed_command)
+	elif speaking and not _directive_active:
+		direction = Vector3.ZERO
+	elif _wait > 0 and not _directive_active:
 		_wait = maxf(0, _wait - delta)
 		direction = Vector3.ZERO
+	elif _directive_active and _stuck > 0.8:
+		var failed_command := _directive_command
+		_cancel_directive(false)
+		direction = Vector3.ZERO
+		directive_failed.emit(npc_id, failed_command)
 	elif direction.length() < 0.18 or _stuck > 0.8:
 		var next := _presence.destination(npc_id)
 		if next.ok:
@@ -109,7 +146,7 @@ func _physics_process(delta: float) -> void:
 	velocity.y = -1.0 if is_on_floor() else velocity.y - 16.0 * delta
 	move_and_slide()
 	var displacement := Vector3(position.x - previous.x, 0, position.z - previous.z)
-	var moving: bool = not speaking and displacement.length() > 0.002
+	var moving: bool = (not speaking or _directive_active) and displacement.length() > 0.002
 	var facing := Vector3.ZERO
 	if speaking and _has_greeting_target:
 		facing = _greeting_target - global_position
@@ -125,7 +162,19 @@ func _physics_process(delta: float) -> void:
 	else:
 		_stuck = 0
 	if position.y < -7:
+		if _directive_active:
+			var failed_command := _directive_command
+			_cancel_directive(false)
+			directive_failed.emit(npc_id, failed_command)
 		position = _spawn
 		velocity = Vector3.ZERO
 		_target = _spawn
 		_play_clip("idle")
+
+func _cancel_directive(emit_failure: bool) -> void:
+	if emit_failure and _directive_active:
+		directive_failed.emit(npc_id, _directive_command)
+	_target = position
+	_directive_active = false
+	_directive_command = ""
+	_stuck = 0.0

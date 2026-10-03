@@ -2,6 +2,7 @@ extends Control
 ## Presentation owns animation only; bootstrap handles navigation and process exit.
 const Session = preload("res://application/session_service.gd")
 const MenuEntry = preload("res://presentation/menu/menu_entry.gd")
+const AiConnectionPanel = preload("res://presentation/menu/ai_connection_panel.gd")
 const DESIGN_SIZE := Vector2(1920.0, 1080.0)
 
 signal route_requested(route_id: String)
@@ -16,13 +17,15 @@ signal quit_requested()
 var _reveal: Tween
 var _departure: Tween
 var _leaving: bool = false
+var _ai_connection: Object = null
+var _settings_overlay: Control = null
 
 func _ready() -> void:
 	resized.connect(_fit_design)
 	_fit_design()
 	_start.pressed.connect(_start_game)
+	_settings.pressed.connect(_open_settings)
 	_exit.pressed.connect(_quit_game)
-	# Settings intentionally has no pressed handler until its scope is defined.
 	_link_focus()
 	_art.modulate.a = 0.0
 	_menu.modulate.a = 0.0
@@ -33,8 +36,8 @@ func _ready() -> void:
 	_reveal.tween_property(_menu, "modulate:a", 1.0, 1.2).set_delay(0.5)
 
 func configure(_session: Session, _pack_id: String, _content_version: String,
-		_debug_enabled: bool) -> void:
-	pass
+		_debug_enabled: bool, ai_connection: Object = null) -> void:
+	_ai_connection = ai_connection
 
 func _fit_design() -> void:
 	var factor: float = minf(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
@@ -70,10 +73,41 @@ func resume_from_archive() -> void:
 func _quit_game() -> void:
 	_depart(quit_requested.emit)
 
+func _open_settings() -> void:
+	if _leaving or _ai_connection == null:
+		return
+	if is_instance_valid(_settings_overlay):
+		_settings_overlay.show()
+		return
+	_settings_overlay = Control.new()
+	_settings_overlay.name = "AiConnectionOverlay"
+	_settings_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_design.add_child(_settings_overlay)
+	var shade := ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.005, 0.007, 0.009, 0.9)
+	_settings_overlay.add_child(shade)
+	var panel := AiConnectionPanel.new()
+	_settings_overlay.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.offset_left = 180.0
+	panel.offset_top = 64.0
+	panel.offset_right = -180.0
+	panel.offset_bottom = -64.0
+	panel.configure(_ai_connection)
+	panel.closed.connect(_close_settings)
+
+func _close_settings() -> void:
+	if is_instance_valid(_settings_overlay):
+		_settings_overlay.hide()
+	_settings.grab_focus()
+
 func _depart(action: Callable, duration: float = 0.3) -> void:
 	if _leaving:
 		return
 	_leaving = true
+	if is_instance_valid(_settings_overlay):
+		_settings_overlay.hide()
 	for entry: MenuEntry in [_start, _settings, _exit]:
 		entry.disabled = true
 	if _reveal != null:

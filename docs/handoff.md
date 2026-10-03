@@ -1,5 +1,57 @@
 # 接续记录
 
+## 输入 API 模式的 NPC AI 纵向切片（2026-10-03）
+
+用户选择在游戏内输入 API 配置并要求开始实现。工作包 AFGCI-NPC-AI / 负责人本任务 / 独立对抗复核待分配；
+分支 `codex/npc-ai-input-api`，managed worktree `C:/Users/31286/.codex/worktrees/npc-ai-input-api/AIRPG`，
+基线 e41553fb。主工作区已有用户改动，未写入、覆盖或暂存；本工作树整合 F1、G1、I1 已完成提交后完成纵向接线。
+
+实现：开始界面“设置”新增 API 地址、模型 ID、API Key 输入与断开入口；Key 提交后清空输入框，只保存在
+本次进程内的运行时凭据，不进入诊断/资源/存档/日志。`ChatCompletionRequestBuilder` 把 F1 过滤上下文编译为
+system/user messages，权威 fact key 在发送前解析为审核正文；`ChatCompletionGateway` 适配 G1 完成信封、缓存并
+解析严格 JSON，拒绝非 stop 结束且不把 raw delta 连接 UI。版本化 prompt 和 Schema 位于 `data/ai/`、
+`data/schemas/`。G1 同时修正 `HTTPClient.request_raw`、忽略暂停/时间缩放的超时、同步回调登记顺序、release 取消、
+endpoint 控制字符和生成参数白名单。
+
+NPC 动作：F1 每个回复最多接受一个动作；`NpcActionContract` 绑定 session/request/revision/speaker/scene，禁止坐标。
+庄园场景只接受 `npc.stay`、`npc.face_player`、`npc.move_to_anchor(anchor_id)`；`NpcActionDriver` 把该 NPC 的白名单
+锚点映射成 Vector3 后交给 `NpcActor`。陌生锚点、跨 NPC 锚点、额外字段、动作拒绝、取消和过期结果均不显示回复。
+移动到达/卡住由角色控制器处理，提示词禁止把移动意图说成已经抵达。对话输入聚焦时 F/E 不再误触游戏快捷键。
+
+范围边界：`preview_reception`、`preview_study`、观察文本、锚点和回复夹具均为合成工程预览，不是正式人物或剧情；
+未实现正式角色卡/知识包、自然语言语义证明、真实服务商调用、长期记忆、语音、路径规划、动作完成回调对话、
+额度/计费 UI、剧情/检定/物品提交或存档恢复。设置中的“已配置”只代表本地校验通过，首次对话才实际请求。
+
+验证：`./scripts/verify.ps1 -Godot D:/Godot/Godot_v4.7.2-stable_win64_console.exe` 原样通过；架构 195 文件与
+3 个负向用例通过，资源导入、启动标记均通过；API 面板自适应修复后的聚合为
+`AIRPG_TESTS: 972 checks, 0 failures`，其中 G1 138、F1 174、NPC-AI 35、I1 246。NPC-AI 离线用例覆盖 Key 不进诊断、控制字符 URL、原始流隔离、截断响应、取消、事实正文解析、精确动作合同、
+错误类型、会话/场景/版本门槛、同步完成竞态、坐标注入、锚点白名单和完整回复/动作流水线。没有使用真实 Key 或网络请求。
+
+对抗复核重点：恶意玩家文本能否诱导模型泄露未投影事实；回复正文是否暗含未列 fact ID 的新增事实；供应商
+返回 JSON mode 差异、SSE 断流与限流行为；Key 在崩溃转储/系统内存中的威胁；NPC 卡住、玩家阻挡和场景退出时
+动作生命周期；正式内容接入时每个 NPC 的事实/锚点最小权限。完整决策和试玩说明见 ADR 0009 与
+`docs/npc-ai-input-api.md`。
+
+后续实机反馈与修复：用户在 1530×1110 窗口截图中发现设置内容继承大字号后超出固定居中面板，模型与
+API Key 字段落到屏幕下方。面板现改为视口内四边留白布局，正文、标签、输入框和按钮使用明确字号与高度，
+内容置于纵向 `ScrollContainer` 并跟随键盘焦点；同分辨率图形渲染截图
+`artifacts/ai-settings-responsive.png` 已确认三个输入框与断开/返回/连接按钮同时可见。截图只作本机验证，
+位于忽略目录；测试捕获脚本新增 `settings` 模式以便复查。
+
+## F1 对话安全边界（2026-09-26）
+
+分支 `feature/f1-dialogue-boundary`，worktree 在仓外独立目录，基线 `integration/slice-wiring@34ff473`。只新增 `game/domain/dialogue/`、`game/application/dialogue/`、`game/tests/f1/`，未改 Composition、公共契约/端口、G1 适配器、I1 视图、StateStore、Schema、本地化和测试聚合入口。
+
+F1 现在是 G1 与 I1 之间的应用边界：按 NPC/场景/话题/透露条件投影权威事实，把玩家原话、笔记和传闻放进显式 `untrusted` 字段后交给 `ModelProvider`；模型完成回复必须通过结构、说话者、事实和动作目录校验，才转换成 `DialogueViewContract.verified_reply`。取消、过期版本、重复完成、错误 request/speaker 的结果一律不显示；失败不写状态、不消耗物品、不提交骰点、不连接 `raw_delta`。
+
+验证：`AIRPG_F1_TESTS`（`tests/f1/run_f1_tests.gd`）174 项 0 失败；架构检查 104 个源文件通过；`./scripts/verify.ps1` 既有 663 项聚合 0 失败且真实主场景启动通过。F1 套件尚未登记进 `tests/run_tests.gd`（禁止功能分支修改），需集成负责人登记。
+
+对抗复核修复：AIRPG-F1-001（非权威事实绕过受众过滤）：`knowledge_facts.untrusted_for` 现已对玩家陈述/传闻应用与权威事实相同的 speaker/scene/topic/透露条件过滤，仅改变信任级别；AIRPG-F1-002（可伪造验证标记）：`ReplyValidator` 返回密封的 `ValidatedReply` 类型，`DialoguePublication.build` 只接受该类型，普通字典（含手写 `validated` 字段）与未密封实例一律拒绝。QA 的 4 项断言全部保留并通过。
+
+未实现：真实 DeepSeek 调用、正式《死光》事实与台词、G1 `completed.content` 到回复 DTO 的解析接线、Composition 装配、I1 生产接线、剧情状态结算/笔记写入、长期记忆摘要。事实文本目前只带 `text_key`，未接本地化解析。
+
+下一步接线：集成负责人登记 F1 套件；Composition 用显式配置构造 `DialogueUseCase`（session、StateStore 只读快照、provider、上下文源、事实目录、动作目录、speaker 档案），I1 用 `configure(use_case)` 连接；G1 侧需在 `completed` 后用 F1 回复 DTO 解析/校验 `content`，prompt/messages 组装与事实文本解析仍需单独评审。
+
 ## 庄园模型换成 V4 修复版（2026-10-03）
 
 用户给出 `output/manor_v4`，要求用这个模型替换原有模型。工作包 A-MANOR（模型线）/

@@ -7,6 +7,8 @@ const ContentValidator = preload("res://domain/content/content_validator.gd")
 const StateStore = preload("res://domain/story/state_store.gd")
 const Session = preload("res://application/session_service.gd")
 const DisabledProvider = preload("res://infrastructure/ai/disabled_provider.gd")
+const RuntimeModelConfiguration = preload("res://infrastructure/ai/runtime_model_configuration.gd")
+const ModelConnectionService = preload("res://application/ai/model_connection_service.gd")
 const StoryArchive = preload("res://bootstrap/story_archive_composition.gd")
 const Launcher = preload("res://application/ports/story_launcher.gd")
 
@@ -32,7 +34,9 @@ static func build(config_path: String = "res://data/config/app.json", launcher: 
 	if not initialized.ok:
 		return initialized
 	var archive := StoryArchive.build(OS.is_debug_build() and config.value.get("story_archive_placeholders", false), launcher)
+	var ai_runtime := RuntimeModelConfiguration.new()
 	return Result.success({"session": Session.new(state), "provider": DisabledProvider.new(),
+		"ai_runtime": ai_runtime, "ai_connection": ModelConnectionService.new(ai_runtime),
 		"story_archive": archive.service, "story_art": archive.art,
 		"config": config.value, "pack_id": content.value.pack_id,
 		"content_version": content.value.content_version})

@@ -62,7 +62,12 @@ func _navigate(route_id: String) -> RefCounted:
 	_active_view = view
 	if view is StoryArchive:
 		view.configure(_services.story_archive, _services.story_art)
-	elif not view is Manor:
+	elif view is Manor:
+		view.configure_ai(_services.ai_runtime)
+	elif view is StartScreen:
+		view.configure(_services.session, _services.pack_id, _services.content_version,
+			_services.config.debug_panel and OS.is_debug_build(), _services.ai_connection)
+	else:
 		view.configure(_services.session, _services.pack_id, _services.content_version,
 			_services.config.debug_panel and OS.is_debug_build())
 	view.route_requested.connect(_navigate)

@@ -1,0 +1,5 @@
+{
+  "description": "Synthetic offline SSE recording that stops mid-JSON without a trailing newline and without [DONE]. Used to prove truncated streams cannot complete.",
+  "chunk_size": 5,
+  "text": "data: {\"id\":\"fixture-2\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"未完成\"},\"finish_reason\":null}]}\r\n\r\ndata: {\"id\":\"fixture-2\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"半截"
+}
