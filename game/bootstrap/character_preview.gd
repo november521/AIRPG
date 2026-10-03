@@ -14,6 +14,7 @@ const Wrench = preload("res://items/data/wrench.tres")
 const ElectricalTape = preload("res://items/data/electrical_tape.tres")
 const Lantern = preload("res://items/data/lantern.tres")
 const Radio = preload("res://items/data/radio.tres")
+const PolaroidPhoto = preload("res://items/data/polaroid_photo.tres")
 const WorldItem = preload("res://items/world/world_item.tscn")
 const HeldItem = preload("res://items/held/crowbar_held.tscn")
 
@@ -67,6 +68,9 @@ static func _lantern_definition() -> Dictionary:
 static func _radio_definition() -> Dictionary:
 	return _item_definition(Radio, "tool")
 
+static func _photo_definition() -> Dictionary:
+	return _item_definition(PolaroidPhoto, "key")
+
 static func build() -> Service:
 	var state := State.new()
 	var result = state.configure({
@@ -85,6 +89,7 @@ static func build() -> Service:
 		"electrical_tape": _electrical_tape_definition(),
 		"lantern": _lantern_definition(),
 		"radio": _radio_definition(),
+		"polaroid_photo": _photo_definition(),
 	}, {
 		"schema_version": 2, "revision": 0, "hp": 70, "hp_max": 100,
 		"sanity": 60, "sanity_max": 100,

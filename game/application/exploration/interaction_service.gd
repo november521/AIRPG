@@ -85,6 +85,41 @@ func interact(target_id: String, expected_revision: int) -> Result:
 	refresh_focus()
 	return result
 
+## The target that currently owns the player's action, or {} when none does. An exclusive target
+## freezes movement and takes the interact key without the aim ray hitting anything, so the HUD can
+## always offer the way out. Handlers keep registration order, so the answer is deterministic.
+func read_exclusive() -> Dictionary:
+	if not _enabled or _closed:
+		return {}
+	for id: String in _handlers:
+		var handler: Handler = _handlers[id]
+		if handler.exclusive():
+			var view: Dictionary = handler.read().duplicate(true)
+			view["target_id"] = id
+			return view
+	return {}
+
+## Interact with the exclusive target. This is deliberately the one path that skips _observe():
+## the player is already holding the object, so demanding that the aim ray land on its world target
+## is exactly the trap this replaces. Every other guard still applies.
+func interact_exclusive(expected_revision: int) -> Result:
+	if not _enabled:
+		return Result.failure("INTERACTION_DISABLED")
+	if _executing:
+		return Result.failure("INTERACTION_BUSY")
+	for id: String in _handlers:
+		var handler: Handler = _handlers[id]
+		if not handler.exclusive():
+			continue
+		if not handler.read().get("available", false):
+			return Result.failure("TARGET_UNAVAILABLE")
+		_executing = true
+		var result: Result = handler.execute(expected_revision)
+		_executing = false
+		refresh_focus()
+		return result
+	return Result.failure("UNKNOWN_TARGET")
+
 func _observe() -> Result:
 	if not is_finite(_reach) or _reach <= 0:
 		return Result.failure("INVALID_INTERACTION_RANGE")

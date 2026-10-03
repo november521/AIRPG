@@ -3,6 +3,7 @@ const Service = preload("res://application/story_archive/story_archive_service.g
 const Card = preload("res://presentation/story_archive/story_card.gd")
 const CARD = preload("res://presentation/story_archive/story_card.tscn")
 const Preview = preload("res://presentation/story_archive/story_preview.gd")
+const Audio = preload("res://application/ports/audio_port.gd")
 signal route_requested(route_id: String)
 var _service: Service
 var _art: Dictionary = {}
@@ -13,6 +14,9 @@ var _busy: bool = false
 var _ready_to_start: bool = false
 var _preview_only: bool = false
 var _transition: Tween
+## The menu bank, attached by bootstrap. Choosing a card is a click, entering the story is the start
+## sound, and going back is the low click -- all synthetic, none of them the manor's own hits.
+var _audio: Audio = Audio.new()
 @onready var _design: Control = %Design
 @onready var _preview: Preview = %Preview
 @onready var _enter: Button = %Enter
@@ -27,6 +31,11 @@ func _ready() -> void:
 	_design.modulate.a = 0.0
 	_transition = create_tween()
 	_transition.tween_property(_design, "modulate:a", 1.0, 0.25)
+
+## Injected by bootstrap. The archive is a menu, so it uses the menu bank.
+func attach_audio(port: Audio) -> void:
+	if port != null:
+		_audio = port
 
 func configure(service: Service, artwork: Dictionary) -> void:
 	if _service != null:
@@ -56,6 +65,8 @@ func configure(service: Service, artwork: Dictionary) -> void:
 func _select(story_id: String, immediate: bool = false) -> void:
 	if _busy or not is_inside_tree() or story_id == _selected_id:
 		return
+	if not immediate:
+		_audio.play_ui(Audio.MENU_CLICK)
 	for story: Dictionary in _stories:
 		if story.id != story_id:
 			continue
@@ -79,6 +90,7 @@ func _preview_settled(story_id: String) -> void:
 func _start() -> void:
 	if _busy or not _ready_to_start or _service == null or not is_inside_tree():
 		return
+	_audio.play_ui(Audio.MENU_START)
 	_lock()
 	var requested_id := _selected_id
 	_transition = create_tween()
@@ -111,6 +123,7 @@ func _unlock() -> void:
 func _return_home() -> void:
 	if _busy or not is_inside_tree():
 		return
+	_audio.play_ui(Audio.MENU_BACK)
 	_lock()
 	_transition = create_tween()
 	_transition.tween_property(_design, "modulate:a", 0.0, 0.25)
