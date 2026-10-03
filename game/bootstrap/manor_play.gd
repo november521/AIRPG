@@ -78,7 +78,7 @@ func _ready() -> void:
 		push_error(interactions.code)
 		return
 	interaction_service = interactions.value
-	_held_item.configure(character_service, player, $World, interaction_service, _audio)
+	_held_item.configure(character_service, player, $World, interaction_service, _sound)
 	_held_item.sync()
 	_interaction_hud = InteractionHud.new()
 	_interaction_hud.configure(interaction_service)

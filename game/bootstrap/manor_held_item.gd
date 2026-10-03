@@ -5,19 +5,19 @@ extends RefCounted
 ## keeps only wiring.
 const WorldItemInteraction = preload("res://application/exploration/interactions/world_item_interaction.gd")
 const WorldItem = preload("res://items/world/world_item.gd")
-const Audio = preload("res://application/ports/audio_port.gd")
+const Soundscape = preload("res://bootstrap/manor_soundscape.gd")
 var _character_service: Object
 var _player: Node3D
 var _world: Node3D
 var _interactions: Object
-var _sound: Audio
+var _sound: Soundscape
 var _held_visual: Node3D
 var _drop_serial: int = 0
 
 ## `interactions` is the shared interaction service, which owns the runtime target the dropped item
 ## registers; `sound` is the manor's already-started audio port.
 func configure(character_service: Object, player: Node3D, world: Node3D, interactions: Object,
-		sound: Audio) -> void:
+		sound: Soundscape) -> void:
 	_character_service = character_service
 	_player = player
 	_world = world
