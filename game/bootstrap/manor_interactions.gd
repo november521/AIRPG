@@ -49,9 +49,11 @@ const PICKUPS: Array[Dictionary] = [
 ]
 const CROWBAR_POSITION := Vector3(-3.5, 0.24, -1.6)
 # Placements below are floor-contact: the world scene sits on its own base, so y is the walk
-# surface, not the box centre. They were measured on the PROTOTYPE manor. V4 rebuilt the scene
-# and moved/deepened the cellar (y -2.72 -> -3.23, treads -> ramp), so every value here is
-# UNVERIFIED against V4 and still needs a per-room floor probe; see docs/handoff.md.
+# surface, not the box centre. The four cellar values are measured against the V4 walk mesh:
+# the cellar floor is flat at y = -3.23 and the V4 ramp descends through x -5.5..-4.5, so those
+# items are kept clear of the ramp band (x -6.10..-4.20) and would otherwise sit inside it.
+# The remaining values were measured on the PROTOTYPE manor and are still UNVERIFIED against V4;
+# see docs/handoff.md.
 const URN_POSITION := Vector3(-4.3, 0.065, -0.8)
 const DIARY_POSITION := Vector3(3.4, 0.0, -4.4)
 const WALLET_POSITION := Vector3(-6.5, 0.0, 2.0)
@@ -59,9 +61,9 @@ const KEROSENE_BOTTLE_POSITION := Vector3(0.5, 0.0, 2.0)
 # Provisional discoverable placements; neither item has an authorized downstream use yet.
 const MANOR_KEY_POSITION := Vector3(5.2, 0.0, -4.4)
 const FUSE_POSITION := Vector3(-3.8, -3.23, -10.6)
-const COPPER_WIRE_COIL_POSITION := Vector3(-4.7, -3.23, -10.0)
+const COPPER_WIRE_COIL_POSITION := Vector3(-3.4, -3.23, -11.4)
 const ELECTRICAL_TAPE_POSITION := Vector3(-4.0, -3.23, -12.0)
-const LANTERN_POSITION := Vector3(-5.4, -3.23, -10.2)
+const LANTERN_POSITION := Vector3(-2.6, -3.23, -7.6)
 const WRENCH_POSITION := Vector3(-9.3, -0.46, -8.6)
 const RADIO_POSITION := Vector3(-7.8, -0.005, 3.2)
 # The generator is a 1.55 x 2.60 x 4.67 m industrial set and cannot fit the cellar, so it stands

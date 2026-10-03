@@ -117,7 +117,10 @@ func run(check: Callable, tree: SceneTree) -> void:
 	check.call(play.character_service.read_character().inventory.manor_key == 1, "INTERACT SCENE: manor key reaches the notebook")
 	var fuse: Node3D = play.find_child("manor_pickup_fuse", true, false)
 	check.call(fuse != null, "INTERACT SCENE: cellar fuse is placed and bound")
-	play.player.place_at(Vector3(-2.8, -2.48, -10.6), PI / 2)
+	# Cellar coordinates follow the V4 walk mesh: floor is flat at y = -3.23 and the V4 ramp
+	# descends through x -5.5..-4.5, so every cellar stand-in point is floor + 0.08 and clear
+	# of the ramp band. See the placement note in bootstrap/manor_interactions.gd.
+	play.player.place_at(Vector3(-2.6, -3.15, -10.6), PI / 2)
 	for frame: int in 4:
 		await tree.physics_frame
 	play.camera.look_at(fuse.global_position + Vector3(0, 0.08, 0))
@@ -130,7 +133,7 @@ func run(check: Callable, tree: SceneTree) -> void:
 	check.call(play.character_service.read_character().inventory.fuse == 1, "INTERACT SCENE: fuse reaches the notebook")
 	var coil: Node3D = play.find_child("manor_pickup_copper_wire_coil", true, false)
 	check.call(coil != null, "INTERACT SCENE: cellar copper wire coil is placed and bound")
-	play.player.place_at(Vector3(-3.7, -2.72, -10.0), PI / 2)
+	play.player.place_at(Vector3(-2.2, -3.15, -11.4), PI / 2)
 	for frame: int in 4:
 		await tree.physics_frame
 	play.camera.look_at(coil.global_position + Vector3(0, 0.04, 0))
@@ -144,7 +147,7 @@ func run(check: Callable, tree: SceneTree) -> void:
 	check.call(not coil.visible and coil.get_node("Target").collision_layer == 0, "INTERACT SCENE: copper wire coil receipt hides visual and ray target together")
 	var tape: Node3D = play.find_child("manor_pickup_electrical_tape", true, false)
 	check.call(tape != null, "INTERACT SCENE: cellar electrical tape is placed and bound")
-	play.player.place_at(Vector3(-3.0, -2.72, -12.0), PI / 2)
+	play.player.place_at(Vector3(-2.8, -3.15, -12.0), PI / 2)
 	for frame: int in 4:
 		await tree.physics_frame
 	play.camera.look_at(tape.global_position + Vector3(0, 0.02, 0))
@@ -157,7 +160,7 @@ func run(check: Callable, tree: SceneTree) -> void:
 	check.call(play.character_service.read_character().inventory.electrical_tape == 1, "INTERACT SCENE: electrical tape reaches the notebook")
 	var lantern: Node3D = play.find_child("manor_pickup_lantern", true, false)
 	check.call(lantern != null, "INTERACT SCENE: cellar lantern is placed and bound")
-	play.player.place_at(Vector3(-4.4, -2.72, -10.2), PI / 2)
+	play.player.place_at(Vector3(-3.8, -3.15, -7.6), -PI / 2)
 	for frame: int in 4:
 		await tree.physics_frame
 	play.camera.look_at(lantern.global_position + Vector3(0, 0.1, 0))
