@@ -1,0 +1,62 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://presentation/cinematic/opening_cutscene.gd" id="1_script"]
+
+[node name="OpeningCutscene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Video" type="VideoStreamPlayer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand = true
+
+[node name="Hint" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = -72.0
+offset_right = -48.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.82, 0.79, 0.72, 1)
+theme_override_font_sizes/font_size = 20
+
+[node name="SkipButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -240.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = 80.0
+grow_horizontal = 0
+focus_neighbor_left = NodePath("../Backdrop")
+
+[node name="Guard" type="Timer" parent="."]
+one_shot = true
