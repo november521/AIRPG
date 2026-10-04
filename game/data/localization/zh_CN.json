@@ -15,6 +15,8 @@
   "archive.unavailable": "故事档案暂时无法读取，请返回主菜单。",
   "archive.art_missing": "场景预览暂不可用",
   "archive.start_unavailable": "故事流程尚未接入，当前仅供浏览故事档案。",
+  "cutscene.skip": "跳过开场（Esc）",
+  "cutscene.hint": "按 Esc 或点击画面跳过 · 开场播放完自动继续",
   "archive.start_failed": "暂时无法进入故事，请重试或返回。",
   "archive.tag_separator": "  /  ",
   "archive.back_arrow": "←  返回主菜单",

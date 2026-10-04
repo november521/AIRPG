@@ -8,6 +8,8 @@ const MAIN = preload("res://bootstrap/main.tscn")
 ## Start-screen detection by script file keeps this harness free of the view's public surface.
 const START_SCRIPT = "start_screen.gd"
 const StoryArchive = preload("res://tests/story_archive/test_story_archive.gd")
+const CutsceneTests = preload("res://tests/cinematic/test_opening_cutscene.gd")
+const CreationView = preload("res://presentation/character/creation_view.gd")
 const ManorTests = preload("res://tests/manor/test_manor.gd")
 const NpcRigTests = preload("res://tests/manor/npc_animation_tests.gd")
 const CharacterTests = preload("res://tests/manor/character_tests.gd")
@@ -85,6 +87,13 @@ func _run() -> void:
 	await process_frame
 	_check(host.get_child_count() == 1 and _is_start_view(host.get_child(0)),
 		"return navigation shows the start screen again")
+	# Entering the Dead Light instance opens with its video. This run cannot display a stream, so the
+	# opening has to release the entry flow by itself: the gate must never cost the player the game.
+	var started: RefCounted = main._services.story_archive.request_start("deadlight")
+	_check(started.ok, "archive accepts entering the Dead Light instance")
+	await process_frame
+	_check(host.get_child_count() == 1 and host.get_child(0) is CreationView,
+		"the opening releases the entry flow to character creation")
 	var router := Router.new()
 	root.add_child(router)
 	var isolated_host := Node.new()
@@ -141,6 +150,9 @@ func _run() -> void:
 	before = _checks
 	await AudioTests.new().run(_check, self)
 	print("AIRPG_AUDIO_TESTS: %d checks" % (_checks - before))
+	before = _checks
+	await CutsceneTests.new().run(_check, self)
+	print("AIRPG_CUTSCENE_TESTS: %d checks" % (_checks - before))
 	print("AIRPG_TESTS: %d checks, %d failures" % [_checks, _failures.size()])
 	quit(0 if _failures.is_empty() else 1)
 
@@ -191,6 +203,10 @@ func _run_filtered() -> void:
 		before = _checks
 		await AudioTests.new().run(_check, self)
 		print("AIRPG_AUDIO_TESTS: %d checks" % (_checks - before))
+	if _wanted("cutscene"):
+		before = _checks
+		await CutsceneTests.new().run(_check, self)
+		print("AIRPG_CUTSCENE_TESTS: %d checks" % (_checks - before))
 	print("AIRPG_FILTER: %s" % _filter)
 	print("AIRPG_TESTS: %d checks, %d failures" % [_checks, _failures.size()])
 	quit(0 if _failures.is_empty() else 1)
