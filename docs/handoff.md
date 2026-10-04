@@ -1,5 +1,30 @@
 # 接续记录
 
+## 《死光》开场动画接入（2026-10-04）
+
+用户交付 20 秒开场动画并要求「点进死光副本后先播开场再进入游戏」。工作包：开场动画接入 / 负责人本任务 /
+独立对抗复核待分配；分支 `feature/deadlight-opening-cutscene`（基于 PR #5 合并后的 tip `ab8ec63d`）。
+决策见 [ADR 0014](adr/0014-deadlight-opening-cutscene.md)，素材来源与转码参数见
+[cinematic-assets.md](cinematic-assets.md)。
+
+**做了什么**：源片是 MP4/H.264，而 Godot 的 `VideoStreamPlayer` 只吃 Ogg Theora，所以先转码为
+`game/presentation/cinematic/deadlight_opening.ogv`（20.07 s / 1280×720 / 24 fps，3.9 MB）。新增
+`presentation/cinematic/opening_cutscene.gd` + `.tscn`（播放器、跳过按钮、提示行、守护计时器；只发
+`finished` 信号、不自己导航），`bootstrap/main.gd` 增加 `cutscene` 路由，并把注入给 `ManorLauncher`
+的回调从 `_launch_creation` 换成 `_launch_deadlight`：档案里点「进入庄园原型」→ 开场动画 → 建卡 → 庄园。
+跳过＝按钮／Esc／Enter／Space／K／鼠标点击（WASD 刻意不跳过），跳过是幂等的；无头运行、空流、
+`cutscene` 路由不可用等情形一律**失败开放**，直接走原来的建卡链路，开场坏掉不阻塞玩家进副本。
+新增本地化键 `cutscene.skip` / `cutscene.hint`；新增套件 `tests/cinematic/test_opening_cutscene.gd`
+（标记 `AIRPG_CUTSCENE_TESTS`），已注册进聚合与 `-filter cutscene` 两条路径。
+
+**未实现**：跳过后的淡出、字幕/多语言音轨、把「已看过」写进存档（当前每次从档案进入都会播）、
+与庄园音乐的交叉淡入淡出；授权状态未确认（见 ADR 0014 与素材文档）。
+
+**协作提醒**：本轮全程在隔离 worktree `.tools/cutscene` 里进行。检查时发现**主工作区有另一个会话的
+未提交改动**（`game/application/character/character_service.gd`、`bootstrap/character_preview.gd`、
+`bootstrap/manor_interactions.gd`、`data/localization/zh_CN.json`、删除
+`game/items/world/world_item.tscn`），我没有触碰它们；同一批文件请勿并行双写。
+
 ## 模型回答缺陷分类 + 一次静默重采样（2026-10-04）
 
 用户给出实机证据：同一套配置下有些请求成功进入 presenting、有些失败，而 Key 错误会持续返回
