@@ -15,6 +15,8 @@ const ManorLauncher = preload("res://infrastructure/navigation/manor_preview_lau
 const CreationService = preload("res://application/character/character_creation_service.gd")
 const CreationView = preload("res://presentation/character/creation_view.gd")
 const CREATION = preload("res://presentation/character/creation_view.tscn")
+const OpeningCutscene = preload("res://presentation/cinematic/opening_cutscene.gd")
+const CUTSCENE = preload("res://presentation/cinematic/opening_cutscene.tscn")
 const Result = preload("res://shared/result.gd")
 const Audio = preload("res://application/ports/audio_port.gd")
 const GodotAudio = preload("res://infrastructure/audio/godot_audio.gd")
@@ -29,6 +31,9 @@ var _creation_service: CreationService
 ## own when it is entered, so a session's music and machine loops belong to the view that started
 ## them and leave with it.
 var _audio: Audio
+## What the entry flow does once the opening video is over. Set when the instance is entered and
+## cleared when it is consumed, so a cutscene that somehow ends twice cannot enter the instance twice.
+var _cutscene_continuation: Callable = Callable()
 
 func _ready() -> void:
 	var messages := JsonFile.read("res://data/localization/zh_CN.json")
@@ -39,7 +44,7 @@ func _ready() -> void:
 	if not localized.ok:
 		_fail(localized.code)
 		return
-	var boot := Composition.build("res://data/config/app.json", ManorLauncher.new(_launch_creation))
+	var boot := Composition.build("res://data/config/app.json", ManorLauncher.new(_launch_deadlight))
 	if not boot.ok:
 		_fail(boot.code)
 		return
@@ -53,7 +58,8 @@ func _ready() -> void:
 	_router = Router.new()
 	add_child(_router)
 	_router.configure($SceneHost, {"home": HOME, "workspace": WORKSPACE,
-		"story_archive": STORY_ARCHIVE, "creation": CREATION, "manor": MANOR})
+		"story_archive": STORY_ARCHIVE, "creation": CREATION, "cutscene": CUTSCENE,
+		"manor": MANOR})
 	_navigate("home")
 	boot_ready = true
 	print("AIRPG_BOOT_READY")
@@ -78,6 +84,10 @@ func _navigate(route_id: String) -> RefCounted:
 	_active_view = view
 	if view is StoryArchive:
 		view.configure(_services.story_archive, _services.story_art)
+	elif view is OpeningCutscene:
+		# A headless run cannot display a stream; the cutscene then steps aside instead of blocking.
+		view.configure(DisplayServer.get_name() != "headless")
+		view.finished.connect(_on_cutscene_finished)
 	elif view is CreationView:
 		view.configure(_creation_service)
 	elif view is Manor:
@@ -91,13 +101,35 @@ func _navigate(route_id: String) -> RefCounted:
 		view.configure(_services.session, _services.pack_id, _services.content_version,
 			_services.config.debug_panel and OS.is_debug_build())
 	view.route_requested.connect(_navigate)
-	if view is StartScreen or view is StoryArchive:
+	if view is StartScreen or view is StoryArchive or view is OpeningCutscene:
 		view.attach_audio(_audio)
+	if view is OpeningCutscene:
+		view.begin()
 	if view is StartScreen:
 		view.quit_requested.connect(_quit_from_menu)
 		if resume_menu:
 			view.resume_from_archive()
 	return routed
+
+## Entering the Dead Light instance opens with its video. The archive's start call lands here, and
+## the rest of the entry -- character creation, then the manor -- continues from the cutscene's
+## signal. A cutscene that cannot be built steps aside rather than costing the player the instance.
+##
+## The continuation is armed before the route is entered on purpose: a run that cannot display the
+## stream finishes the opening synchronously from `begin()`, and by then the signal has to find it.
+func _launch_deadlight() -> RefCounted:
+	_cutscene_continuation = _launch_creation
+	var routed := _navigate("cutscene")
+	if not routed.ok:
+		_cutscene_continuation = Callable()
+		return _launch_creation()
+	return routed
+
+func _on_cutscene_finished() -> void:
+	var continuation: Callable = _cutscene_continuation
+	_cutscene_continuation = Callable()
+	if continuation.is_valid():
+		continuation.call()
 
 func _launch_creation() -> RefCounted:
 	_creation_service = CreationService.new()
